@@ -1,0 +1,101 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { Panel } from "@/components/ui-kit/Panel";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { FileText, Download, BarChart2, Globe } from "lucide-react";
+
+export const Route = createFileRoute("/reports")({
+  head: () => ({ meta: [{ title: "Environmental Reports · Swachh Hawa" }] }),
+  component: Page,
+});
+
+const REPORTS = [
+  { id: "RPT-2026-Q1", title: "State of Air — Q1 2026", type: "Quarterly", date: "2026-04-15", pages: 84, cities: 131, format: "PDF + CSV", status: "Published" },
+  { id: "RPT-2026-Q2-DRAFT", title: "State of Air — Q2 2026 (Draft)", type: "Quarterly", date: "2026-05-28", pages: 62, cities: 131, format: "PDF", status: "Draft" },
+  { id: "NCAP-2026-MID", title: "NCAP Mid-Year Progress Report", type: "NCAP", date: "2026-05-01", pages: 44, cities: 131, format: "PDF", status: "Published" },
+  { id: "ATLAS-2025", title: "National Air Quality Atlas 2025", type: "Atlas", date: "2026-01-20", pages: 212, cities: 250, format: "PDF + Shapefile", status: "Published" },
+  { id: "GRAP-MAY26", title: "GRAP Performance Report — May 2026", type: "Enforcement", date: "2026-05-25", pages: 28, cities: 11, format: "PDF", status: "Published" },
+  { id: "HEALTH-2025", title: "Air Pollution Health Impact Assessment 2025", type: "Health", date: "2025-12-10", pages: 96, cities: 50, format: "PDF", status: "Published" },
+];
+
+const CATEGORIES = ["All", "Quarterly", "NCAP", "Atlas", "Enforcement", "Health"];
+
+export default function Page() {
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="RESEARCH · Environmental Reports"
+        title="Published Reports & Data Atlases"
+        description="Quarterly State of Air reports, NCAP compliance assessments, health impact analyses, and the National Air Quality Atlas. All reports cite hash-anchored data with Merkle proofs."
+        actions={
+          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
+            <FileText className="h-3.5 w-3.5" /> Generate Custom Report
+          </button>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { l: "Published Reports", v: "48", c: "primary" },
+          { l: "Total Downloads", v: "124K", c: "cyan" },
+          { l: "Cities Covered", v: "250+", c: "emerald" },
+          { l: "Data Records Cited", v: "2.8B", c: "amber" },
+        ].map(s => (
+          <div key={s.l} className="rounded-xl border border-border bg-card/70 p-4">
+            <div className="text-[10px] uppercase mono tracking-wider text-muted-foreground">{s.l}</div>
+            <div className="mt-1 mono text-2xl font-semibold" style={{ color: `var(--${s.c})` }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1">
+        {CATEGORIES.map(c => (
+          <button key={c} className="rounded-lg border border-border bg-card/70 px-3 py-1.5 text-xs font-medium hover:bg-accent/50 first:bg-primary first:text-primary-foreground first:border-primary">
+            {c}
+          </button>
+        ))}
+      </div>
+
+      <Panel title="Report Library" subtitle="All reports cite cryptographically verified data — Merkle proof included in appendix" dense>
+        <div className="divide-y divide-border">
+          {REPORTS.map(r => (
+            <div key={r.id} className="flex items-center gap-4 px-4 py-3.5 hover:bg-accent/30">
+              <FileText className="h-8 w-8 p-1.5 rounded-lg border border-border text-muted-foreground flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium">{r.title}</span>
+                  <span className="rounded px-1.5 py-0.5 text-[10px] mono" style={{
+                    background: r.status === "Published" ? "color-mix(in oklab,var(--emerald) 16%,transparent)" : "color-mix(in oklab,var(--amber) 16%,transparent)",
+                    color: r.status === "Published" ? "var(--emerald)" : "var(--amber)",
+                  }}>{r.status}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground mono mt-0.5">
+                  {r.id} · {r.type} · {r.pages}pp · {r.cities} cities · {r.format} · {r.date}
+                </div>
+              </div>
+              <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50 flex-shrink-0">
+                <Download className="h-3.5 w-3.5" /> Download
+              </button>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[
+          { title: "Open Data API", desc: "All datasets accessible via REST API with DP-sanitised outputs. Rate-limited by role.", icon: <Globe className="h-5 w-5" />, c: "cyan" },
+          { title: "Bulk CSV Export", desc: "Download time-series by city, pollutant, and date range. Includes chain proof manifest.", icon: <Download className="h-5 w-5" />, c: "primary" },
+          { title: "Data Atlas (Shapefile)", desc: "GIS-ready shapefiles for the 250-city pollution grid with attribute tables.", icon: <BarChart2 className="h-5 w-5" />, c: "emerald" },
+        ].map(t => (
+          <div key={t.title} className="rounded-xl border border-border bg-card/70 p-4 flex items-start gap-3">
+            <span style={{ color: `var(--${t.c})` }} className="mt-0.5">{t.icon}</span>
+            <div>
+              <div className="text-sm font-semibold">{t.title}</div>
+              <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
+              <button className="mt-2 text-xs font-medium text-primary hover:underline">Access →</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
