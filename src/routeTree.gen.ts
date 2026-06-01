@@ -32,6 +32,14 @@ import { Route as ForecastingRouteImport } from './routes/forecasting'
 import { Route as ExplainableRouteImport } from './routes/explainable'
 import { Route as EnforcementRouteImport } from './routes/enforcement'
 import { Route as EdgeNodesRouteImport } from './routes/edge-nodes'
+import { Route as EaSystemArchitectureRouteImport } from './routes/ea-system-architecture'
+import { Route as EaSecurityDpiaRouteImport } from './routes/ea-security-dpia'
+import { Route as EaOverviewRouteImport } from './routes/ea-overview'
+import { Route as EaOperatingModelRouteImport } from './routes/ea-operating-model'
+import { Route as EaLedgerRouteImport } from './routes/ea-ledger'
+import { Route as EaIntegrationRouteImport } from './routes/ea-integration'
+import { Route as EaDataArchRouteImport } from './routes/ea-data-arch'
+import { Route as EaCapabilityRouteImport } from './routes/ea-capability'
 import { Route as DronesRouteImport } from './routes/drones'
 import { Route as DigitalTwinRouteImport } from './routes/digital-twin'
 import { Route as DeviceHealthRouteImport } from './routes/device-health'
@@ -161,6 +169,46 @@ const EdgeNodesRoute = EdgeNodesRouteImport.update({
   path: '/edge-nodes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EaSystemArchitectureRoute = EaSystemArchitectureRouteImport.update({
+  id: '/ea-system-architecture',
+  path: '/ea-system-architecture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaSecurityDpiaRoute = EaSecurityDpiaRouteImport.update({
+  id: '/ea-security-dpia',
+  path: '/ea-security-dpia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaOverviewRoute = EaOverviewRouteImport.update({
+  id: '/ea-overview',
+  path: '/ea-overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaOperatingModelRoute = EaOperatingModelRouteImport.update({
+  id: '/ea-operating-model',
+  path: '/ea-operating-model',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaLedgerRoute = EaLedgerRouteImport.update({
+  id: '/ea-ledger',
+  path: '/ea-ledger',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaIntegrationRoute = EaIntegrationRouteImport.update({
+  id: '/ea-integration',
+  path: '/ea-integration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaDataArchRoute = EaDataArchRouteImport.update({
+  id: '/ea-data-arch',
+  path: '/ea-data-arch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EaCapabilityRoute = EaCapabilityRouteImport.update({
+  id: '/ea-capability',
+  path: '/ea-capability',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DronesRoute = DronesRouteImport.update({
   id: '/drones',
   path: '/drones',
@@ -241,6 +289,14 @@ export interface FileRoutesByFullPath {
   '/device-health': typeof DeviceHealthRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/drones': typeof DronesRoute
+  '/ea-capability': typeof EaCapabilityRoute
+  '/ea-data-arch': typeof EaDataArchRoute
+  '/ea-integration': typeof EaIntegrationRoute
+  '/ea-ledger': typeof EaLedgerRoute
+  '/ea-operating-model': typeof EaOperatingModelRoute
+  '/ea-overview': typeof EaOverviewRoute
+  '/ea-security-dpia': typeof EaSecurityDpiaRoute
+  '/ea-system-architecture': typeof EaSystemArchitectureRoute
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
@@ -279,6 +335,14 @@ export interface FileRoutesByTo {
   '/device-health': typeof DeviceHealthRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/drones': typeof DronesRoute
+  '/ea-capability': typeof EaCapabilityRoute
+  '/ea-data-arch': typeof EaDataArchRoute
+  '/ea-integration': typeof EaIntegrationRoute
+  '/ea-ledger': typeof EaLedgerRoute
+  '/ea-operating-model': typeof EaOperatingModelRoute
+  '/ea-overview': typeof EaOverviewRoute
+  '/ea-security-dpia': typeof EaSecurityDpiaRoute
+  '/ea-system-architecture': typeof EaSystemArchitectureRoute
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
@@ -318,6 +382,14 @@ export interface FileRoutesById {
   '/device-health': typeof DeviceHealthRoute
   '/digital-twin': typeof DigitalTwinRoute
   '/drones': typeof DronesRoute
+  '/ea-capability': typeof EaCapabilityRoute
+  '/ea-data-arch': typeof EaDataArchRoute
+  '/ea-integration': typeof EaIntegrationRoute
+  '/ea-ledger': typeof EaLedgerRoute
+  '/ea-operating-model': typeof EaOperatingModelRoute
+  '/ea-overview': typeof EaOverviewRoute
+  '/ea-security-dpia': typeof EaSecurityDpiaRoute
+  '/ea-system-architecture': typeof EaSystemArchitectureRoute
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
@@ -358,6 +430,14 @@ export interface FileRouteTypes {
     | '/device-health'
     | '/digital-twin'
     | '/drones'
+    | '/ea-capability'
+    | '/ea-data-arch'
+    | '/ea-integration'
+    | '/ea-ledger'
+    | '/ea-operating-model'
+    | '/ea-overview'
+    | '/ea-security-dpia'
+    | '/ea-system-architecture'
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
@@ -396,6 +476,14 @@ export interface FileRouteTypes {
     | '/device-health'
     | '/digital-twin'
     | '/drones'
+    | '/ea-capability'
+    | '/ea-data-arch'
+    | '/ea-integration'
+    | '/ea-ledger'
+    | '/ea-operating-model'
+    | '/ea-overview'
+    | '/ea-security-dpia'
+    | '/ea-system-architecture'
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
@@ -434,6 +522,14 @@ export interface FileRouteTypes {
     | '/device-health'
     | '/digital-twin'
     | '/drones'
+    | '/ea-capability'
+    | '/ea-data-arch'
+    | '/ea-integration'
+    | '/ea-ledger'
+    | '/ea-operating-model'
+    | '/ea-overview'
+    | '/ea-security-dpia'
+    | '/ea-system-architecture'
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
@@ -473,6 +569,14 @@ export interface RootRouteChildren {
   DeviceHealthRoute: typeof DeviceHealthRoute
   DigitalTwinRoute: typeof DigitalTwinRoute
   DronesRoute: typeof DronesRoute
+  EaCapabilityRoute: typeof EaCapabilityRoute
+  EaDataArchRoute: typeof EaDataArchRoute
+  EaIntegrationRoute: typeof EaIntegrationRoute
+  EaLedgerRoute: typeof EaLedgerRoute
+  EaOperatingModelRoute: typeof EaOperatingModelRoute
+  EaOverviewRoute: typeof EaOverviewRoute
+  EaSecurityDpiaRoute: typeof EaSecurityDpiaRoute
+  EaSystemArchitectureRoute: typeof EaSystemArchitectureRoute
   EdgeNodesRoute: typeof EdgeNodesRoute
   EnforcementRoute: typeof EnforcementRoute
   ExplainableRoute: typeof ExplainableRoute
@@ -661,6 +765,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EdgeNodesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ea-system-architecture': {
+      id: '/ea-system-architecture'
+      path: '/ea-system-architecture'
+      fullPath: '/ea-system-architecture'
+      preLoaderRoute: typeof EaSystemArchitectureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-security-dpia': {
+      id: '/ea-security-dpia'
+      path: '/ea-security-dpia'
+      fullPath: '/ea-security-dpia'
+      preLoaderRoute: typeof EaSecurityDpiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-overview': {
+      id: '/ea-overview'
+      path: '/ea-overview'
+      fullPath: '/ea-overview'
+      preLoaderRoute: typeof EaOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-operating-model': {
+      id: '/ea-operating-model'
+      path: '/ea-operating-model'
+      fullPath: '/ea-operating-model'
+      preLoaderRoute: typeof EaOperatingModelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-ledger': {
+      id: '/ea-ledger'
+      path: '/ea-ledger'
+      fullPath: '/ea-ledger'
+      preLoaderRoute: typeof EaLedgerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-integration': {
+      id: '/ea-integration'
+      path: '/ea-integration'
+      fullPath: '/ea-integration'
+      preLoaderRoute: typeof EaIntegrationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-data-arch': {
+      id: '/ea-data-arch'
+      path: '/ea-data-arch'
+      fullPath: '/ea-data-arch'
+      preLoaderRoute: typeof EaDataArchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ea-capability': {
+      id: '/ea-capability'
+      path: '/ea-capability'
+      fullPath: '/ea-capability'
+      preLoaderRoute: typeof EaCapabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/drones': {
       id: '/drones'
       path: '/drones'
@@ -769,6 +929,14 @@ const rootRouteChildren: RootRouteChildren = {
   DeviceHealthRoute: DeviceHealthRoute,
   DigitalTwinRoute: DigitalTwinRoute,
   DronesRoute: DronesRoute,
+  EaCapabilityRoute: EaCapabilityRoute,
+  EaDataArchRoute: EaDataArchRoute,
+  EaIntegrationRoute: EaIntegrationRoute,
+  EaLedgerRoute: EaLedgerRoute,
+  EaOperatingModelRoute: EaOperatingModelRoute,
+  EaOverviewRoute: EaOverviewRoute,
+  EaSecurityDpiaRoute: EaSecurityDpiaRoute,
+  EaSystemArchitectureRoute: EaSystemArchitectureRoute,
   EdgeNodesRoute: EdgeNodesRoute,
   EnforcementRoute: EnforcementRoute,
   ExplainableRoute: ExplainableRoute,

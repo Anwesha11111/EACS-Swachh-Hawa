@@ -9,7 +9,7 @@ import {
   Cpu, Network, Cloud, Plane, Truck,
   Database, Code2, Lock as LockIcon, FileBarChart2,
   Users, KeyRound, ShieldCheck, ServerCog, Settings,
-  ChevronLeft, Wind,
+  ChevronLeft, Wind, Workflow,
 } from "lucide-react";
 
 type Item = { to: string; label: string; icon: any; badge?: string };
@@ -83,6 +83,19 @@ const NAV: Group[] = [
       { to: "/security",         label: "Security",           icon: ShieldCheck },
       { to: "/system",           label: "System Health",      icon: ServerCog },
       { to: "/settings",         label: "Settings",           icon: Settings },
+    ],
+  },
+  {
+    label: "Enterprise Architecture",
+    items: [
+      { to: "/ea-overview",        label: "EA Overview",          icon: Layers3, badge: "EA" },
+      { to: "/ea-system-architecture", label: "System Diagram",   icon: Workflow, badge: "LIVE" },
+      { to: "/ea-capability",      label: "Capability Model",      icon: Boxes },
+      { to: "/ea-operating-model", label: "Operating Model",       icon: Building2 },
+      { to: "/ea-data-arch",       label: "Data Architecture",     icon: Database },
+      { to: "/ea-integration",     label: "Integration Arch.",     icon: Network },
+      { to: "/ea-ledger",          label: "Ledger Design",         icon: LockIcon },
+      { to: "/ea-security-dpia",   label: "Security & DPIA",       icon: ShieldCheck },
     ],
   },
   {

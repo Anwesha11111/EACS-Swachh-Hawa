@@ -46,7 +46,7 @@ export default function Page() {
         actions={
           <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs">
             <Brain className="h-3.5 w-3.5 text-primary" />
-            <span className="mono">LGBM v3.2.1 · MAE 11.8 · R² 0.91</span>
+            <span className="mono">LGBM v3.2.1 · MAE 11.8 · R² 0.93</span>
           </div>
         }
       />

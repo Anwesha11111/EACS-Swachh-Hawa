@@ -58,7 +58,7 @@ const RADAR_FEATURES = [
 ];
 
 const MLFLOW_VERSIONS = [
-  { run: "v3.2.1", date: "2026-05-20", mae: 11.8, rmse: 17.2, status: "production" },
+  { run: "v3.2.1", date: "2026-05-20", mae: 11.8, rmse: 16.4, status: "production" },
   { run: "v3.2.0", date: "2026-05-10", mae: 13.1, rmse: 19.4, status: "archived" },
   { run: "v3.1.5", date: "2026-04-28", mae: 14.7, rmse: 21.8, status: "archived" },
 ];
@@ -81,7 +81,7 @@ export default function Page() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { l: "Model MAE (AQI)", v: "11.8", c: "emerald" },
-          { l: "RMSE (AQI)", v: "17.2", c: "chart-1" },
+          { l: "RMSE (AQI)", v: "16.4", c: "chart-1" },
           { l: "24h Confidence Band", v: "±35", c: "cyan" },
           { l: "Drift Detected", v: "None", c: "emerald" },
         ].map((s) => (
