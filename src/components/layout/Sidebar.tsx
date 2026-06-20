@@ -9,7 +9,7 @@ import {
   Cpu, Network, Cloud, Plane, Truck,
   Database, Code2, Lock as LockIcon, FileBarChart2,
   Users, KeyRound, ShieldCheck, ServerCog, Settings,
-  ChevronLeft, Wind, Workflow,
+  ChevronLeft, Wind, Workflow, GitMerge,
 } from "lucide-react";
 
 type Item = { to: string; label: string; icon: any; badge?: string };
@@ -96,6 +96,7 @@ const NAV: Group[] = [
       { to: "/ea-integration",     label: "Integration Arch.",     icon: Network },
       { to: "/ea-ledger",          label: "Ledger Design",         icon: LockIcon },
       { to: "/ea-security-dpia",   label: "Security & DPIA",       icon: ShieldCheck },
+      { to: "/ea-metamodel",       label: "EA Metamodel",           icon: GitMerge, badge: "NEW" },
     ],
   },
   {

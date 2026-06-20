@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { FileText, Download, BarChart2, Globe } from "lucide-react";
+import { downloadCsv } from "@/lib/export";
+import { CITIES } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Environmental Reports · Swachh Hawa" }] }),
@@ -82,16 +84,21 @@ export default function Page() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
-          { title: "Open Data API", desc: "All datasets accessible via REST API with DP-sanitised outputs. Rate-limited by role.", icon: <Globe className="h-5 w-5" />, c: "cyan" },
-          { title: "Bulk CSV Export", desc: "Download time-series by city, pollutant, and date range. Includes chain proof manifest.", icon: <Download className="h-5 w-5" />, c: "primary" },
-          { title: "Data Atlas (Shapefile)", desc: "GIS-ready shapefiles for the 250-city pollution grid with attribute tables.", icon: <BarChart2 className="h-5 w-5" />, c: "emerald" },
+          { title: "Open Data API", desc: "All datasets accessible via REST API with DP-sanitised outputs. Rate-limited by role.", icon: <Globe className="h-5 w-5" />, c: "cyan", action: () => {} },
+          { title: "Bulk CSV Export", desc: "Download time-series by city, pollutant, and date range. Includes chain proof manifest.", icon: <Download className="h-5 w-5" />, c: "primary",
+            action: () => downloadCsv(
+              CITIES.map(c => ({ City: c.name, State: c.state, AQI: c.aqi, "PM2.5 (µg/m³)": c.pm25, "PM10 (µg/m³)": c.pm10, "24h Trend": c.trend >= 0 ? `+${c.trend}` : c.trend, "Exported At": new Date().toISOString() })),
+              `swachh-hawa-aqi-${new Date().toISOString().slice(0,10)}.csv`
+            )
+          },
+          { title: "Data Atlas (Shapefile)", desc: "GIS-ready shapefiles for the 250-city pollution grid with attribute tables.", icon: <BarChart2 className="h-5 w-5" />, c: "emerald", action: () => {} },
         ].map(t => (
           <div key={t.title} className="rounded-xl border border-border bg-card/70 p-4 flex items-start gap-3">
             <span style={{ color: `var(--${t.c})` }} className="mt-0.5">{t.icon}</span>
             <div>
               <div className="text-sm font-semibold">{t.title}</div>
               <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
-              <button className="mt-2 text-xs font-medium text-primary hover:underline">Access →</button>
+              <button onClick={t.action} className="mt-2 text-xs font-medium text-primary hover:underline">Access →</button>
             </div>
           </div>
         ))}

@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { CITIES, aqiCategory } from "@/lib/mock-data";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Layers, Download } from "lucide-react";
+import { exportSvgAsPng } from "@/lib/export";
 
 export const Route = createFileRoute("/heatmaps")({
   head: () => ({ meta: [{ title: "Pollution Heatmaps · Swachh Hawa" }] }),
@@ -22,34 +23,51 @@ function aqiToColor(aqi: number, alpha = 0.85) {
   return `rgba(120,20,20,${alpha})`;
 }
 
-function IndiaHeatmap({ pollutant }: { pollutant: string }) {
+function IndiaHeatmap({ pollutant, svgRef }: { pollutant: string; svgRef?: React.Ref<SVGSVGElement> }) {
   const data = CITIES.map(c => ({
     ...c,
     val: pollutant === "PM2.5" ? c.pm25 : pollutant === "PM10" ? c.pm10 : c.aqi,
   }));
 
   return (
-    <svg viewBox="0 0 800 900" className="w-full h-full" style={{ maxHeight: 480 }}>
+    <svg ref={svgRef} viewBox="0 0 800 900" className="w-full h-full" style={{ maxHeight: 480 }}>
       <defs>
         <filter id="blur-heat">
-          <feGaussianBlur stdDeviation="32" />
+          <feGaussianBlur stdDeviation="16" result="blur" />
+          <feComposite in="blur" in2="blur" operator="over" />
         </filter>
+        <filter id="blur-soft">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
+        <clipPath id="india-clip">
+          <rect x="155" y="95" width="490" height="710" rx="36" />
+        </clipPath>
         {data.map(c => (
           <radialGradient key={c.name} id={`g-${c.name}`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={aqiToColor(c.val, 0.9)} />
+            <stop offset="0%" stopColor={aqiToColor(c.val, 1.0)} />
+            <stop offset="55%" stopColor={aqiToColor(c.val, 0.7)} />
             <stop offset="100%" stopColor={aqiToColor(c.val, 0)} />
           </radialGradient>
         ))}
       </defs>
 
-      {/* India outline suggestion */}
-      <rect x="160" y="100" width="480" height="700" rx="40" fill="var(--card)" stroke="var(--border)" strokeWidth="1.5" />
+      {/* India outline */}
+      <rect x="155" y="95" width="490" height="710" rx="36" fill="var(--card)" stroke="var(--border)" strokeWidth="1.5" />
 
-      {/* Heat blobs */}
-      <g filter="url(#blur-heat)" opacity="0.85">
-        {data.map(c => (
-          <ellipse key={c.name} cx={c.x} cy={c.y} rx={70} ry={70} fill={`url(#g-${c.name})`} />
-        ))}
+      {/* Heat blobs — clipped to India bounds, two-pass for depth */}
+      <g clipPath="url(#india-clip)">
+        {/* Outer soft glow layer */}
+        <g filter="url(#blur-heat)" opacity="0.75">
+          {data.map(c => (
+            <ellipse key={c.name} cx={c.x} cy={c.y} rx={90} ry={90} fill={`url(#g-${c.name})`} />
+          ))}
+        </g>
+        {/* Inner sharp core layer */}
+        <g filter="url(#blur-soft)" opacity="0.85">
+          {data.map(c => (
+            <ellipse key={`core-${c.name}`} cx={c.x} cy={c.y} rx={32} ry={32} fill={aqiToColor(c.val, 0.85)} />
+          ))}
+        </g>
       </g>
 
       {/* City dots + labels */}
@@ -57,12 +75,16 @@ function IndiaHeatmap({ pollutant }: { pollutant: string }) {
         const cat = aqiCategory(c.val);
         return (
           <g key={c.name}>
-            <circle cx={c.x} cy={c.y} r={8} fill={aqiToColor(c.val, 1)} stroke="white" strokeWidth="1.5" />
-            <text x={c.x + 11} y={c.y + 4} fontSize="11" fill="white" fontFamily="monospace" fontWeight="600"
-              style={{ textShadow: "0 1px 4px #0008" }}>
+            <circle cx={c.x} cy={c.y} r={6} fill={aqiToColor(c.val, 1)} stroke="var(--background)" strokeWidth="2" />
+            <circle cx={c.x} cy={c.y} r={2.5} fill="var(--background)" opacity="0.7" />
+            <text x={c.x + 10} y={c.y + 4} fontSize="10" fill="var(--background)" fontFamily="monospace" fontWeight="800"
+              stroke="var(--background)" strokeWidth="3" paintOrder="stroke">
               {c.name}
             </text>
-            <text x={c.x + 11} y={c.y + 16} fontSize="10" fill="rgba(255,255,255,0.7)" fontFamily="monospace">
+            <text x={c.x + 10} y={c.y + 4} fontSize="10" fill="var(--foreground)" fontFamily="monospace" fontWeight="600">
+              {c.name}
+            </text>
+            <text x={c.x + 10} y={c.y + 15} fontSize="9" fill={aqiToColor(c.val, 1)} fontFamily="monospace" fontWeight="700">
               {c.val}
             </text>
           </g>
@@ -85,6 +107,12 @@ function IndiaHeatmap({ pollutant }: { pollutant: string }) {
 export default function Page() {
   const [pollutant, setPollutant] = useState("AQI");
   const [timeWindow, setTimeWindow] = useState("Live");
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const handleExport = useCallback(async () => {
+    if (!svgRef.current) return;
+    await exportSvgAsPng(svgRef.current, `heatmap-${pollutant.toLowerCase()}-${timeWindow.toLowerCase().replace(/\s/g, "-")}.png`);
+  }, [pollutant, timeWindow]);
 
   return (
     <div className="space-y-5">
@@ -93,7 +121,10 @@ export default function Page() {
         title="Spatio-Temporal Pollution Heatmaps"
         description="Radial gradient heatmap overlaid on national grid. Switch pollutant and time window to explore spatial distribution patterns."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+          >
             <Download className="h-3.5 w-3.5" /> Export PNG
           </button>
         }
@@ -124,7 +155,7 @@ export default function Page() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <Panel title={`India · ${pollutant} Heatmap · ${timeWindow}`} subtitle="Radial gradient per station · intensity = pollutant concentration">
-            <IndiaHeatmap pollutant={pollutant} />
+            <IndiaHeatmap pollutant={pollutant} svgRef={svgRef} />
           </Panel>
         </div>
 

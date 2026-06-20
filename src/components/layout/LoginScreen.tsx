@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Phone, Wind, Eye, EyeOff } from "lucide-react";
-import { useAuth, type AuthUser } from "@/lib/auth";
+import { toast } from "sonner";
+import { Phone, Wind, Eye, EyeOff, Mail, Lock, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { DEMO_ACCOUNTS, type DemoAccount } from "@/lib/auth/demo-accounts";
 
 /* ── Social-provider button icons (inline SVGs to avoid extra deps) ── */
 function GoogleIcon() {
@@ -14,7 +16,6 @@ function GoogleIcon() {
     </svg>
   );
 }
-
 function FacebookIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
@@ -22,7 +23,6 @@ function FacebookIcon() {
     </svg>
   );
 }
-
 function TwitterXIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
@@ -31,23 +31,50 @@ function TwitterXIcon() {
   );
 }
 
-/* ── Phone login sub-form ── */
-function PhoneForm({ onLogin }: { onLogin: () => void }) {
+/* ── Phone login sub-form (real server OTP) ── */
+function PhoneForm() {
+  const { requestOtp, verifyOtp } = useAuth();
   const [step, setStep] = useState<"number" | "otp">("number");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
-  const { login } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const sendOtp = () => {
-    if (phone.replace(/\D/g, "").length >= 10) setStep("otp");
+  const sendOtp = async () => {
+    if (phone.replace(/\D/g, "").length < 10) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await requestOtp(phone);
+    setBusy(false);
+    if (res.ok) {
+      setStep("otp");
+      if (res.demo && res.code) {
+        toast("Demo OTP (no SMS provider configured)", {
+          description: `Your one-time code is ${res.code}`,
+          icon: "🔐",
+          duration: 8000,
+        });
+      }
+    } else {
+      setError(res.error ?? "Could not send code.");
+    }
   };
 
-  const verify = () => {
-    if (otp.length === 6) {
-      login("phone", { email: `+91 ${phone}` });
-      onLogin();
+  const verify = async () => {
+    if (otp.length !== 6) {
+      setError("Enter the 6-digit code.");
+      return;
     }
+    setBusy(true);
+    setError(null);
+    const res = await verifyOtp(phone, otp);
+    setBusy(false);
+    if (!res.ok) setError(res.error ?? "Invalid code.");
+    // On success the app switches automatically.
   };
 
   return (
@@ -60,15 +87,18 @@ function PhoneForm({ onLogin }: { onLogin: () => void }) {
               type="tel"
               placeholder="Mobile number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              onKeyDown={(e) => e.key === "Enter" && sendOtp()}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               maxLength={10}
             />
           </div>
           <button
             onClick={sendOtp}
-            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-60"
           >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             Send OTP
           </button>
         </>
@@ -81,6 +111,7 @@ function PhoneForm({ onLogin }: { onLogin: () => void }) {
               placeholder="6-digit OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              onKeyDown={(e) => e.key === "Enter" && verify()}
               className="flex-1 bg-transparent text-sm font-mono outline-none placeholder:text-muted-foreground tracking-widest"
               maxLength={6}
             />
@@ -90,14 +121,21 @@ function PhoneForm({ onLogin }: { onLogin: () => void }) {
           </div>
           <button
             onClick={verify}
-            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition disabled:opacity-60"
           >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             Verify & Sign In
           </button>
-          <button onClick={() => setStep("number")} className="w-full text-xs text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setStep("number"); setError(null); }} className="w-full text-xs text-muted-foreground hover:text-foreground">
             ← Change number
           </button>
         </>
+      )}
+      {error && (
+        <p className="flex items-center gap-1.5 text-[11px] text-[var(--rose)]">
+          <AlertCircle className="h-3.5 w-3.5" /> {error}
+        </p>
       )}
     </div>
   );
@@ -105,10 +143,40 @@ function PhoneForm({ onLogin }: { onLogin: () => void }) {
 
 /* ── Main login screen ── */
 export function LoginScreen() {
-  const { login } = useAuth();
-  const [showPhone, setShowPhone] = useState(false);
+  const { loginWithPassword } = useAuth();
+  const [view, setView] = useState<"main" | "phone">("main");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [showDemos, setShowDemos] = useState(false);
 
-  const socialLogin = (provider: AuthUser["provider"]) => login(provider);
+  const submit = async (em = email, pw = password) => {
+    if (!em || !pw) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await loginWithPassword(em, pw);
+    setBusy(false);
+    if (!res.ok) setError(res.error ?? "Login failed.");
+    // On success the AppShell swaps to the app automatically.
+  };
+
+  const quickLogin = (acct: DemoAccount) => {
+    setEmail(acct.email);
+    setPassword(acct.password);
+    submit(acct.email, acct.password);
+  };
+
+  // "Demo SSO" — OAuth isn't configured, so these sign in via the real auth
+  // path using a demo account. Clearly labelled so it's not mistaken for real SSO.
+  const demoSso = (role: DemoAccount["role"]) => {
+    const acct = DEMO_ACCOUNTS.find((a) => a.role === role) ?? DEMO_ACCOUNTS[0];
+    quickLogin(acct);
+  };
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 overflow-hidden relative">
@@ -124,7 +192,7 @@ export function LoginScreen() {
         className="relative z-10 w-full max-w-sm"
       >
         {/* Logo + branding */}
-        <div className="mb-8 text-center">
+        <div className="mb-6 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/80 shadow-lg backdrop-blur-md">
             <Wind className="h-7 w-7 text-primary" />
           </div>
@@ -138,37 +206,84 @@ export function LoginScreen() {
 
         {/* Login card */}
         <div className="rounded-2xl border border-border bg-card/80 p-6 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.24)]">
-          <h2 className="mb-1 text-base font-semibold text-foreground">Sign in to continue</h2>
-          <p className="mb-6 text-xs text-muted-foreground">Choose your preferred sign-in method</p>
+          {view === "main" ? (
+            <>
+              <h2 className="mb-1 text-base font-semibold text-foreground">Sign in to continue</h2>
+              <p className="mb-5 text-xs text-muted-foreground">Enter your credentials to access the platform</p>
 
-          {!showPhone ? (
-            <div className="space-y-3">
-              {/* Google */}
-              <button
-                onClick={() => socialLogin("google")}
-                className="flex w-full items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
-              >
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </button>
+              {/* Email + password */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 focus-within:border-primary transition">
+                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    autoComplete="username"
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submit()}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 focus-within:border-primary transition">
+                  <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    type={showPw ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    autoComplete="current-password"
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submit()}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  <button onClick={() => setShowPw((v) => !v)} className="text-muted-foreground hover:text-foreground">
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
 
-              {/* Facebook */}
-              <button
-                onClick={() => socialLogin("facebook")}
-                className="flex w-full items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
-              >
-                <FacebookIcon />
-                <span>Continue with Facebook</span>
-              </button>
+                {error && (
+                  <p className="flex items-center gap-1.5 text-[11px] text-[var(--rose)]">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {error}
+                  </p>
+                )}
 
-              {/* Twitter / X */}
-              <button
-                onClick={() => socialLogin("twitter")}
-                className="flex w-full items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
-              >
-                <TwitterXIcon />
-                <span>Continue with X (Twitter)</span>
-              </button>
+                <button
+                  onClick={() => submit()}
+                  disabled={busy}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition disabled:opacity-60"
+                >
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Sign In
+                </button>
+              </div>
+
+              {/* Demo accounts */}
+              <div className="mt-4 rounded-lg border border-[var(--cyan)]/25 bg-[var(--cyan)]/5 p-3">
+                <button
+                  onClick={() => setShowDemos((v) => !v)}
+                  className="flex w-full items-center justify-between text-[11px] font-semibold text-[var(--cyan)]"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Demo accounts — one-click sign in
+                  </span>
+                  <span>{showDemos ? "−" : "+"}</span>
+                </button>
+                {showDemos && (
+                  <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+                    {DEMO_ACCOUNTS.map((a) => (
+                      <button
+                        key={a.email}
+                        onClick={() => quickLogin(a)}
+                        disabled={busy}
+                        className="rounded-md border border-border bg-card/70 px-2 py-1.5 text-left transition hover:border-primary/40 disabled:opacity-60"
+                      >
+                        <div className="text-[11px] font-medium text-foreground">{a.role}</div>
+                        <div className="truncate text-[9px] text-muted-foreground mono">{a.password}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
@@ -179,24 +294,54 @@ export function LoginScreen() {
                 </div>
               </div>
 
-              {/* Mobile */}
-              <button
-                onClick={() => setShowPhone(true)}
-                className="flex w-full items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
-              >
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <span>Continue with Mobile Number</span>
-              </button>
-            </div>
+              {/* Mobile + Demo SSO */}
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => { setView("phone"); setError(null); }}
+                  className="flex w-full items-center gap-3 rounded-lg border border-border bg-card/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
+                >
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span>Continue with Mobile Number</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => demoSso("Administrator")}
+                    title="OAuth not configured — demo sign-in"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition"
+                  >
+                    <GoogleIcon /> <span className="hidden sm:inline">Google</span>
+                  </button>
+                  <button
+                    onClick={() => demoSso("Analyst")}
+                    title="OAuth not configured — demo sign-in"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition"
+                  >
+                    <FacebookIcon /> <span className="hidden sm:inline">Facebook</span>
+                  </button>
+                  <button
+                    onClick={() => demoSso("Viewer")}
+                    title="OAuth not configured — demo sign-in"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs font-medium text-foreground hover:bg-accent transition"
+                  >
+                    <TwitterXIcon /> <span className="hidden sm:inline">X</span>
+                  </button>
+                </div>
+                <p className="text-center text-[10px] text-muted-foreground">
+                  Social buttons are <span className="font-semibold">demo sign-in</span> — real OAuth activates when provider keys are configured.
+                </p>
+              </div>
+            </>
           ) : (
             <div>
+              <h2 className="mb-4 text-base font-semibold text-foreground">Sign in with mobile</h2>
               <button
-                onClick={() => setShowPhone(false)}
+                onClick={() => { setView("main"); setError(null); }}
                 className="mb-4 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
               >
                 ← Back to sign-in options
               </button>
-              <PhoneForm onLogin={() => {}} />
+              <PhoneForm />
             </div>
           )}
 

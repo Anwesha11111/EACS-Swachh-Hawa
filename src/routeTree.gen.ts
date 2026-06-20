@@ -36,6 +36,7 @@ import { Route as EaSystemArchitectureRouteImport } from './routes/ea-system-arc
 import { Route as EaSecurityDpiaRouteImport } from './routes/ea-security-dpia'
 import { Route as EaOverviewRouteImport } from './routes/ea-overview'
 import { Route as EaOperatingModelRouteImport } from './routes/ea-operating-model'
+import { Route as EaMetamodelRouteImport } from './routes/ea-metamodel'
 import { Route as EaLedgerRouteImport } from './routes/ea-ledger'
 import { Route as EaIntegrationRouteImport } from './routes/ea-integration'
 import { Route as EaDataArchRouteImport } from './routes/ea-data-arch'
@@ -189,6 +190,11 @@ const EaOperatingModelRoute = EaOperatingModelRouteImport.update({
   path: '/ea-operating-model',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EaMetamodelRoute = EaMetamodelRouteImport.update({
+  id: '/ea-metamodel',
+  path: '/ea-metamodel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EaLedgerRoute = EaLedgerRouteImport.update({
   id: '/ea-ledger',
   path: '/ea-ledger',
@@ -293,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/ea-data-arch': typeof EaDataArchRoute
   '/ea-integration': typeof EaIntegrationRoute
   '/ea-ledger': typeof EaLedgerRoute
+  '/ea-metamodel': typeof EaMetamodelRoute
   '/ea-operating-model': typeof EaOperatingModelRoute
   '/ea-overview': typeof EaOverviewRoute
   '/ea-security-dpia': typeof EaSecurityDpiaRoute
@@ -339,6 +346,7 @@ export interface FileRoutesByTo {
   '/ea-data-arch': typeof EaDataArchRoute
   '/ea-integration': typeof EaIntegrationRoute
   '/ea-ledger': typeof EaLedgerRoute
+  '/ea-metamodel': typeof EaMetamodelRoute
   '/ea-operating-model': typeof EaOperatingModelRoute
   '/ea-overview': typeof EaOverviewRoute
   '/ea-security-dpia': typeof EaSecurityDpiaRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/ea-data-arch': typeof EaDataArchRoute
   '/ea-integration': typeof EaIntegrationRoute
   '/ea-ledger': typeof EaLedgerRoute
+  '/ea-metamodel': typeof EaMetamodelRoute
   '/ea-operating-model': typeof EaOperatingModelRoute
   '/ea-overview': typeof EaOverviewRoute
   '/ea-security-dpia': typeof EaSecurityDpiaRoute
@@ -434,6 +443,7 @@ export interface FileRouteTypes {
     | '/ea-data-arch'
     | '/ea-integration'
     | '/ea-ledger'
+    | '/ea-metamodel'
     | '/ea-operating-model'
     | '/ea-overview'
     | '/ea-security-dpia'
@@ -480,6 +490,7 @@ export interface FileRouteTypes {
     | '/ea-data-arch'
     | '/ea-integration'
     | '/ea-ledger'
+    | '/ea-metamodel'
     | '/ea-operating-model'
     | '/ea-overview'
     | '/ea-security-dpia'
@@ -526,6 +537,7 @@ export interface FileRouteTypes {
     | '/ea-data-arch'
     | '/ea-integration'
     | '/ea-ledger'
+    | '/ea-metamodel'
     | '/ea-operating-model'
     | '/ea-overview'
     | '/ea-security-dpia'
@@ -573,6 +585,7 @@ export interface RootRouteChildren {
   EaDataArchRoute: typeof EaDataArchRoute
   EaIntegrationRoute: typeof EaIntegrationRoute
   EaLedgerRoute: typeof EaLedgerRoute
+  EaMetamodelRoute: typeof EaMetamodelRoute
   EaOperatingModelRoute: typeof EaOperatingModelRoute
   EaOverviewRoute: typeof EaOverviewRoute
   EaSecurityDpiaRoute: typeof EaSecurityDpiaRoute
@@ -793,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EaOperatingModelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ea-metamodel': {
+      id: '/ea-metamodel'
+      path: '/ea-metamodel'
+      fullPath: '/ea-metamodel'
+      preLoaderRoute: typeof EaMetamodelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ea-ledger': {
       id: '/ea-ledger'
       path: '/ea-ledger'
@@ -933,6 +953,7 @@ const rootRouteChildren: RootRouteChildren = {
   EaDataArchRoute: EaDataArchRoute,
   EaIntegrationRoute: EaIntegrationRoute,
   EaLedgerRoute: EaLedgerRoute,
+  EaMetamodelRoute: EaMetamodelRoute,
   EaOperatingModelRoute: EaOperatingModelRoute,
   EaOverviewRoute: EaOverviewRoute,
   EaSecurityDpiaRoute: EaSecurityDpiaRoute,

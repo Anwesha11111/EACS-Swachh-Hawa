@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Bell, Settings, Sun, Moon, ChevronDown, Menu,
@@ -7,6 +7,7 @@ import {
 import { useTheme } from "@/lib/theme";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
+import { CommandPalette } from "./CommandPalette";
 
 const PAGE_TITLES: Record<string, string> = {
   "/":                 "National Overview",
@@ -82,6 +83,21 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
     return () => clearInterval(id);
   }, []);
 
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const openCmd = useCallback(() => setCmdOpen(true), []);
+  const closeCmd = useCallback(() => setCmdOpen(false), []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen(o => !o);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
   const [userOpen, setUserOpen] = useState(false);
@@ -107,6 +123,7 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 
   return (
     <>
+      <CommandPalette open={cmdOpen} onClose={closeCmd} />
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-xl">
         {/* Left */}
         <div className="flex items-center gap-3 min-w-0">
@@ -121,15 +138,15 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           <LiveBadge />
         </div>
 
-        {/* Center: search */}
-        <div className="mx-4 flex max-w-sm flex-1 items-center gap-2 rounded-md border border-border bg-card/60 px-3 py-1.5 text-sm">
+        {/* Center: search — clicks open the command palette */}
+        <button
+          onClick={openCmd}
+          className="mx-4 flex max-w-sm flex-1 items-center gap-2 rounded-md border border-border bg-card/60 px-3 py-1.5 text-sm text-left hover:bg-accent transition"
+        >
           <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <input
-            placeholder="Search locations, devices, incidents…"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
+          <span className="flex-1 text-sm text-muted-foreground">Search locations, devices, incidents…</span>
           <kbd className="hidden md:inline-flex rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] mono text-muted-foreground">⌘K</kbd>
-        </div>
+        </button>
 
         {/* Right */}
         <div className="ml-auto flex items-center gap-1.5">

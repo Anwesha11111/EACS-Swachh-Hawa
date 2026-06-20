@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  AlertTriangle, CheckCircle, Flame, ZoomIn, ZoomOut, Maximize2,
-  Layers, Share2, ChevronDown, ArrowUp, ArrowDown,
+  AlertTriangle, CheckCircle, Flame, Maximize2,
+  ChevronDown, ArrowUp, ArrowDown,
   HeartPulse, ShieldAlert, Leaf, Bell,
 } from "lucide-react";
 import {
@@ -59,7 +59,7 @@ function Index() {
       <div className="grid gap-4 xl:grid-cols-[1fr_300px] 2xl:grid-cols-[1fr_320px]">
 
         {/* Map Card */}
-        <section className="relative overflow-hidden rounded-xl border border-border bg-card/70 backdrop-blur-md">
+        <section className="relative overflow-hidden rounded-xl border border-border bg-card/70 backdrop-blur-md flex flex-col">
           {/* Card header */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
             <div>
@@ -90,20 +90,8 @@ function Index() {
           </div>
 
           {/* Map */}
-          <div className="relative" style={{ height: 420 }}>
+          <div className="relative flex-1" style={{ minHeight: 340 }}>
             <IndiaMap />
-
-            {/* Map controls — right edge */}
-            <div className="absolute right-3 top-3 flex flex-col gap-1.5">
-              {[ZoomIn, ZoomOut, Layers, Share2].map((Icon, i) => (
-                <button
-                  key={i}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card/80 backdrop-blur-md hover:bg-accent transition shadow-sm"
-                >
-                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
 
             {/* Top Polluted Cities — overlay top right of map */}
             <div className="absolute right-14 top-3 w-48 rounded-lg border border-border bg-card/90 backdrop-blur-md p-3 shadow-[var(--shadow-elevated)]">

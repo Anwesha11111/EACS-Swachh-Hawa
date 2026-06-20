@@ -1,60 +1,133 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 
-export interface AuthUser {
-  name: string;
-  email: string;
-  initials: string;
-  role: string;
-  provider: "google" | "facebook" | "twitter" | "phone";
-  avatar?: string;
+import {
+  loginWithPassword as loginPwFn,
+  requestOtp as requestOtpFn,
+  verifyOtp as verifyOtpFn,
+  getSession,
+  logoutFn,
+} from "./api/auth.functions";
+import type { AuthUser, Role } from "./auth-roles";
+import { roleAtLeast } from "./auth-roles";
+
+// Re-export so existing imports (`import { type AuthUser } from "@/lib/auth"`)
+// keep working.
+export type { AuthUser, Role } from "./auth-roles";
+
+interface LoginResult {
+  ok: boolean;
+  error?: string;
+}
+interface OtpRequestResult {
+  ok: boolean;
+  demo?: boolean;
+  code?: string;
+  error?: string;
 }
 
 interface AuthCtx {
   user: AuthUser | null;
-  login: (provider: AuthUser["provider"], overrides?: Partial<AuthUser>) => void;
-  logout: () => void;
+  /** True until the initial session check resolves. */
+  loading: boolean;
   isAuthenticated: boolean;
+  loginWithPassword: (email: string, password: string) => Promise<LoginResult>;
+  requestOtp: (phone: string) => Promise<OtpRequestResult>;
+  verifyOtp: (phone: string, otp: string) => Promise<LoginResult>;
+  logout: () => Promise<void>;
+  /** Role check helper for conditional UI. */
+  hasRole: (min: Role) => boolean;
 }
 
 const AuthContext = createContext<AuthCtx>({
   user: null,
-  login: () => {},
-  logout: () => {},
+  loading: true,
   isAuthenticated: false,
+  loginWithPassword: async () => ({ ok: false }),
+  requestOtp: async () => ({ ok: false }),
+  verifyOtp: async () => ({ ok: false }),
+  logout: async () => {},
+  hasRole: () => false,
 });
 
-const MOCK_USERS: Record<AuthUser["provider"], AuthUser> = {
-  google:   { name: "Priya Sharma",   email: "priya.sharma@gmail.com",  initials: "PS", role: "Administrator",  provider: "google" },
-  facebook: { name: "Arjun Mehta",    email: "arjun.mehta@outlook.com", initials: "AM", role: "Analyst",        provider: "facebook" },
-  twitter:  { name: "Neha Gupta",     email: "neha.gupta@x.com",        initials: "NG", role: "Viewer",         provider: "twitter" },
-  phone:    { name: "Rajesh Kumar",   email: "+91 98765 43210",          initials: "RK", role: "Field Officer",  provider: "phone" },
-};
-
-function readStored(): AuthUser | null {
-  try {
-    const s = localStorage.getItem("sh-auth-user");
-    return s ? (JSON.parse(s) as AuthUser) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(readStored);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (provider: AuthUser["provider"], overrides?: Partial<AuthUser>) => {
-    const u: AuthUser = { ...MOCK_USERS[provider], ...overrides };
-    setUser(u);
-    localStorage.setItem("sh-auth-user", JSON.stringify(u));
-  };
+  // Validate the httpOnly session cookie on mount (server-side check).
+  useEffect(() => {
+    let cancelled = false;
+    getSession()
+      .then((res) => {
+        if (!cancelled) setUser(res.user ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("sh-auth-user");
-  };
+  const loginWithPassword = useCallback(async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const res = await loginPwFn({ data: { email, password } });
+      if (res.ok) {
+        setUser(res.user);
+        return { ok: true };
+      }
+      return { ok: false, error: res.error };
+    } catch {
+      return { ok: false, error: "Something went wrong. Please try again." };
+    }
+  }, []);
+
+  const requestOtp = useCallback(async (phone: string): Promise<OtpRequestResult> => {
+    try {
+      return await requestOtpFn({ data: { phone } });
+    } catch {
+      return { ok: false, error: "Could not send code. Please try again." };
+    }
+  }, []);
+
+  const verifyOtp = useCallback(async (phone: string, otp: string): Promise<LoginResult> => {
+    try {
+      const res = await verifyOtpFn({ data: { phone, otp } });
+      if (res.ok) {
+        setUser(res.user);
+        return { ok: true };
+      }
+      return { ok: false, error: res.error };
+    } catch {
+      return { ok: false, error: "Something went wrong. Please try again." };
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutFn();
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  const hasRole = useCallback((min: Role) => roleAtLeast(user?.role, min), [user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
+        loginWithPassword,
+        requestOtp,
+        verifyOtp,
+        logout,
+        hasRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
