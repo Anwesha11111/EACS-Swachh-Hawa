@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { Bell, Globe, Moon, Sliders, Webhook, Save } from "lucide-react";
-import { useState } from "react";
+import { Bell, Globe, Webhook, Save, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getSettings, saveSettings } from "@/lib/api/settings.functions";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · Swachh Hawa" }] }),
@@ -10,11 +13,63 @@ export const Route = createFileRoute("/settings")({
 });
 
 export default function Page() {
+  const { user } = useAuth();
+  const userEmail = user?.email ?? "admin@swachhhawa.gov.in";
+
   const [alertThreshold, setAlertThreshold] = useState(200);
   const [notifEmail, setNotifEmail] = useState(true);
   const [notifSMS, setNotifSMS] = useState(false);
   const [notifPush, setNotifPush] = useState(true);
   const [locale, setLocale] = useState("en-IN");
+  const [pm25, setPm25] = useState(60);
+  const [no2, setNo2] = useState(100);
+  const [so2, setSo2] = useState(80);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getSettings({ data: { userEmail } }).then(res => {
+      if (res.settings) {
+        setAlertThreshold(res.settings.alertThreshold);
+        setNotifEmail(res.settings.notifEmail);
+        setNotifSMS(res.settings.notifSms);
+        setNotifPush(res.settings.notifPush);
+        setLocale(res.settings.locale);
+        setPm25(res.settings.pm25Threshold);
+        setNo2(res.settings.no2Threshold);
+        setSo2(res.settings.so2Threshold);
+      }
+    }).catch(() => {});
+  }, [userEmail]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await saveSettings({
+        data: {
+          userEmail,
+          settings: {
+            alertThreshold,
+            notifEmail,
+            notifSms: notifSMS,
+            notifPush,
+            locale,
+            pm25Threshold: pm25,
+            no2Threshold: no2,
+            so2Threshold: so2,
+          }
+        }
+      });
+      if (res.ok) {
+        toast.success(res.mode === "live" ? "Settings saved to Supabase!" : "Settings updated (demo session)");
+      } else {
+        toast.error(res.error ?? "Failed to save settings");
+      }
+    } catch {
+      toast.error("Error connecting to server");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -23,8 +78,13 @@ export default function Page() {
         title="Platform Preferences & Integrations"
         description="Notification thresholds, locale settings, alert routing, and webhook integrations."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
-            <Save className="h-3.5 w-3.5" /> Save Changes
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         }
       />
@@ -44,10 +104,19 @@ export default function Page() {
                 <span>100 (Moderate)</span><span>400 (Severe)</span>
               </div>
             </div>
-            {[["PM2.5 Alert (µg/m³)", "60"], ["NO₂ Alert (µg/m³)", "100"], ["SO₂ Alert (µg/m³)", "80"]].map(([label, val]) => (
+            {[
+              { label: "PM2.5 Alert (µg/m³)", val: pm25, set: setPm25 },
+              { label: "NO₂ Alert (µg/m³)",   val: no2,  set: setNo2 },
+              { label: "SO₂ Alert (µg/m³)",   val: so2,  set: setSo2 },
+            ].map(({ label, val, set }) => (
               <div key={label} className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{label}</span>
-                <input defaultValue={val} className="mono w-20 rounded border border-border bg-background/60 px-2 py-1 text-right text-xs outline-none focus:border-primary" />
+                <input
+                  type="number"
+                  value={val}
+                  onChange={e => set(Number(e.target.value))}
+                  className="mono w-20 rounded border border-border bg-background/60 px-2 py-1 text-right text-xs outline-none focus:border-primary"
+                />
               </div>
             ))}
           </div>

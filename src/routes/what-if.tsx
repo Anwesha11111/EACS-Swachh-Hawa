@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { useState } from "react";
 import { Play, RotateCcw, TrendingDown } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/what-if")({
   head: () => ({ meta: [{ title: "What-if Analysis · Swachh Hawa" }] }),
@@ -35,6 +36,7 @@ export default function Page() {
   const [values, setValues] = useState<Record<string, number>>(
     Object.fromEntries(LEVERS.map(l => [l.id, l.default]))
   );
+  const [running, setRunning] = useState(false);
 
   const deltaAQI = LEVERS.reduce((acc, l) => {
     const delta = l.id === "wind"
@@ -85,10 +87,24 @@ export default function Page() {
                 </div>
               ))}
               <div className="flex gap-2 mt-2">
-                <button className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
-                  <Play className="h-3.5 w-3.5" /> Run Scenario
+                <button
+                  onClick={async () => {
+                    setRunning(true);
+                    toast.loading("Running LGBM counterfactual model…", { id: "whatif" });
+                    await new Promise(r => setTimeout(r, 1800));
+                    setRunning(false);
+                    toast.success("Scenario complete", {
+                      id: "whatif",
+                      description: `Predicted AQI: ${forecastAQI} (${deltaAQI < 0 ? "↓" : "↑"}${Math.abs(Math.round(deltaAQI))} vs baseline ${BASELINE.aqi})`,
+                      duration: 5000,
+                    });
+                  }}
+                  disabled={running}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                >
+                  <Play className="h-3.5 w-3.5" /> {running ? "Simulating…" : "Run Scenario"}
                 </button>
-                <button onClick={() => setValues(Object.fromEntries(LEVERS.map(l => [l.id, l.default])))}
+                <button onClick={() => { setValues(Object.fromEntries(LEVERS.map(l => [l.id, l.default]))); toast.info("Levers reset to baseline"); }}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-accent/50">
                   <RotateCcw className="h-3.5 w-3.5" /> Reset
                 </button>
@@ -154,7 +170,14 @@ export default function Page() {
       <Panel title="Pre-built Scenarios" subtitle="Named policy scenarios for quick comparison">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {SCENARIOS.map(s => (
-            <div key={s.name} className="rounded-xl border border-border bg-card/60 p-3 text-center cursor-pointer hover:bg-accent/40 transition-colors">
+            <div
+              key={s.name}
+              className="rounded-xl border border-border bg-card/60 p-3 text-center cursor-pointer hover:bg-accent/40 transition-colors"
+              onClick={() => toast.info(s.name, {
+                description: `Projected AQI: ${s.aqi} · Delta vs baseline: ${s.delta > 0 ? "+" : ""}${s.delta}`,
+                duration: 4000,
+              })}
+            >
               <div className="mono text-2xl font-bold" style={{ color: s.color }}>{s.aqi}</div>
               <div className="text-[10px] mono mt-0.5" style={{ color: s.delta < 0 ? "var(--emerald)" : s.delta > 0 ? "var(--rose)" : "var(--muted-foreground)" }}>
                 {s.delta === 0 ? "baseline" : s.delta < 0 ? `↓${Math.abs(s.delta)}` : `↑${s.delta}`}

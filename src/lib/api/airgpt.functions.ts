@@ -137,6 +137,50 @@ function ruleBasedReply(question: string): string {
   ].join("\n");
 }
 
+// ── Groq API call ─────────────────────────────────────────────────────────────
+
+async function askGroq(
+  messages: { role: "user" | "assistant"; content: string }[],
+  apiKey: string,
+  model: string,
+): Promise<string> {
+  const cleanKey = apiKey.startsWith("groq-") ? apiKey.slice(5) : apiKey;
+  const systemPrompt = [
+    "You are AirGPT, an expert AI assistant for the Swachh Hawa national air quality platform.",
+    "You help government officials, analysts, field officers, and citizens understand air quality data,",
+    "health impacts, GRAP action plans, CPCB standards, and policy options.",
+    "Be concise, factual, and cite CPCB/IMD/CAQM data where relevant.",
+    "Current city AQI snapshot (CPCB mock data):",
+    CITIES.map(c => `${c.name}: AQI ${c.aqi}, PM2.5 ${c.pm25}, PM10 ${c.pm10}`).join("; "),
+  ].join("\n");
+
+  const formattedMessages = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
+
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cleanKey}`,
+    },
+    body: JSON.stringify({
+      model: model.includes("claude") ? "llama3-70b-8192" : model,
+      messages: formattedMessages,
+      max_tokens: 1024,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq API ${res.status}: ${err.slice(0, 200)}`);
+  }
+
+  const json = await res.json() as { choices: { message: { content: string } }[] };
+  return json.choices?.[0]?.message?.content ?? "No response.";
+}
+
 // ── Claude API call ───────────────────────────────────────────────────────────
 
 async function askClaude(
@@ -191,11 +235,16 @@ export const askAirGpt = createServerFn({ method: "POST" })
 
     if (apiKey) {
       try {
-        const reply = await askClaude(data.messages, apiKey, model);
-        return { reply, source: "live" as const };
+        if (apiKey.startsWith("groq-") || apiKey.startsWith("gsk_") || model.includes("llama")) {
+          const reply = await askGroq(data.messages, apiKey, model);
+          return { reply, source: "live" as const };
+        } else {
+          const reply = await askClaude(data.messages, apiKey, model);
+          return { reply, source: "live" as const };
+        }
       } catch (e) {
         const fallback = ruleBasedReply(lastUserMsg);
-        return { reply: fallback + "\n\n*(Claude API error — using rule-based fallback)*", source: "mock" as const };
+        return { reply: fallback + `\n\n*(AI API error — using rule-based fallback)*`, source: "mock" as const };
       }
     }
 

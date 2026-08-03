@@ -6,6 +6,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import { Activity, RefreshCw } from "lucide-react";
+import { useLiveAqi } from "@/hooks/useLiveData";
 
 export const Route = createFileRoute("/live-aqi")({
   head: () => ({ meta: [{ title: "Live AQI Stream · Swachh Hawa" }] }),
@@ -21,6 +22,9 @@ const LIVE_STREAM = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 export default function Page() {
+  const { data: aqiData, isFetching, refetch } = useLiveAqi();
+  const cities = aqiData?.data ?? CITIES;
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -28,8 +32,12 @@ export default function Page() {
         title="Real-time AQI Across National Grid"
         description="Per-station AQI stream updated every 15 minutes. All readings hash-chain verified before display."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50 disabled:opacity-50 transition"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} /> {isFetching ? "Refreshing…" : "Refresh"}
           </button>
         }
       />
@@ -53,7 +61,7 @@ export default function Page() {
 
       <Panel title="All Stations — Current AQI" dense>
         <div className="grid grid-cols-1 gap-0 divide-y divide-border">
-          {CITIES.map((c) => {
+          {cities.map((c) => {
             const cat = aqiCategory(c.aqi);
             return (
               <div key={c.name} className="flex items-center gap-4 px-4 py-3 hover:bg-accent/30">

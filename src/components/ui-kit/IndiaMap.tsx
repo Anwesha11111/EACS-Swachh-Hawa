@@ -138,9 +138,11 @@ function liveUpdate(cs: CityAqi[]): CityAqi[] {
 export function IndiaMap({
   onSelect,
   compact = false,
+  activeLayers = {},
 }: {
   onSelect?: (c: CityAqi) => void;
   compact?: boolean;
+  activeLayers?: Record<string, boolean>;
 }) {
   const [zoom,      setZoom]      = useState(1);
   const [pan,       setPan]       = useState({ x: 0, y: 0 });

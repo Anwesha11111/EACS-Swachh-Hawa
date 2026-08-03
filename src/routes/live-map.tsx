@@ -11,9 +11,20 @@ export const Route = createFileRoute("/live-map")({
   head: () => ({ meta: [{ title: "Live GIS Intelligence · Swachh Hawa" }] }),
   component: LiveMap,
 });
-
-function LiveMap() {
+function LiveMap() {
   const [sel, setSel] = useState<CityAqi>(CITIES[0]);
+  const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
+    Layers: true,
+    Satellite: false,
+    Wind: true,
+    Drones: false,
+    MVU: false,
+  });
+
+  const toggleLayer = (label: string) => {
+    setActiveLayers(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
   const cat = aqiCategory(sel.aqi);
   return (
     <div className="space-y-4">
@@ -34,11 +45,11 @@ function LiveMap() {
             <IndiaMap onSelect={setSel} />
             {/* Floating overlay controls */}
             <div className="absolute left-3 top-3 flex flex-col gap-2">
-              <FloatBtn icon={Layers} label="Layers" />
-              <FloatBtn icon={Satellite} label="Satellite" />
-              <FloatBtn icon={Wind} label="Wind" />
-              <FloatBtn icon={Plane} label="Drones" />
-              <FloatBtn icon={Truck} label="MVU" />
+              <FloatBtn icon={Layers} label="Layers" active={activeLayers.Layers} onClick={() => toggleLayer("Layers")} />
+              <FloatBtn icon={Satellite} label="Satellite" active={activeLayers.Satellite} onClick={() => toggleLayer("Satellite")} />
+              <FloatBtn icon={Wind} label="Wind" active={activeLayers.Wind} onClick={() => toggleLayer("Wind")} />
+              <FloatBtn icon={Plane} label="Drones" active={activeLayers.Drones} onClick={() => toggleLayer("Drones")} />
+              <FloatBtn icon={Truck} label="MVU" active={activeLayers.MVU} onClick={() => toggleLayer("MVU")} />
             </div>
             <div className="absolute right-3 top-3 flex items-center gap-2 rounded-md border border-border bg-card/80 px-3 py-1.5 text-[11px] mono backdrop-blur">
               <Sun className="h-3 w-3 text-[var(--amber)]" />
@@ -66,7 +77,7 @@ function LiveMap() {
             <div className="mt-3 h-24">
               <ResponsiveContainer>
                 <AreaChart data={HOURLY_AQI}>
-                  <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient></defs>
+                  <defs><linearGradient id="ga" x1="0" y1="0" x2="1"><stop stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient></defs>
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", fontSize: 11 }} />
                   <Area dataKey="delhi" stroke="var(--primary)" fill="url(#ga)" strokeWidth={1.6} />
                 </AreaChart>
@@ -93,10 +104,25 @@ function LiveMap() {
   );
 }
 
-function FloatBtn({ icon: I, label }: any) {
+interface FloatBtnProps {
+  icon: any;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+function FloatBtn({ icon: I, label, active, onClick }: FloatBtnProps) {
   return (
-    <button className="flex items-center gap-2 rounded-md border border-border bg-card/85 px-2.5 py-1.5 text-[11px] backdrop-blur hover:border-primary/40">
-      <I className="h-3.5 w-3.5 text-primary" /><span className="mono">{label}</span>
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[11px] backdrop-blur transition-all ${
+        active
+          ? "border-primary bg-primary/15 text-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.25)]"
+          : "border-border bg-card/85 text-muted-foreground hover:text-foreground hover:border-primary/40"
+      }`}
+    >
+      <I className={`h-3.5 w-3.5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+      <span className="mono">{label}</span>
     </button>
   );
 }

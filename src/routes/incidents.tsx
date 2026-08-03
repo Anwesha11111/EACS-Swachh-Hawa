@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
-import { INCIDENTS } from "@/lib/mock-data";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid,
 } from "recharts";
 import { AlertOctagon, Search, Filter, Download, ArrowRight, FileText, ShieldCheck } from "lucide-react";
+import { INCIDENTS } from "@/lib/mock-data";
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/incidents")({
   head: () => ({ meta: [{ title: "Enforcement · Swachh Hawa" }] }),
@@ -38,6 +41,51 @@ const BY_TYPE = [
 ];
 
 function Page() {
+  const [search, setSearch] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState<string>("All");
+
+  const filtered = useMemo(() => {
+    let list = INCIDENTS;
+    if (search) list = list.filter(i =>
+      i.id.toLowerCase().includes(search.toLowerCase()) ||
+      i.city.toLowerCase().includes(search.toLowerCase()) ||
+      i.type.toLowerCase().includes(search.toLowerCase())
+    );
+    if (severityFilter !== "All") list = list.filter(i => i.severity === severityFilter);
+    return list;
+  }, [search, severityFilter]);
+
+  const handleActivateStrikeTeams = async () => {
+    setActivating(true);
+    toast.loading("Activating Strike Teams…", { id: "strike" });
+    await new Promise(r => setTimeout(r, 1800));
+    setActivating(false);
+    toast.success("Strike Teams Activated", {
+      id: "strike",
+      description: "3 CPCB rapid-response teams dispatched to Delhi-NCR. ETAs: 18 min, 24 min, 31 min.",
+      duration: 5000,
+    });
+  };
+
+  const handleExport = () => {
+    downloadCsv(
+      filtered.map(i => ({
+        "Case ID": i.id, City: i.city, Type: i.type,
+        Severity: i.severity, Status: i.status,
+        Officer: i.officer, Timestamp: i.ts,
+        "Exported At": new Date().toISOString(),
+      })),
+      `incidents-export-${new Date().toISOString().slice(0,10)}.csv`
+    );
+    toast.success(`Exported ${filtered.length} incidents as CSV`);
+  };
+
+  const handleNewCase = () => {
+    toast.info("New Manual Case", { description: "Case form opened — fill in location, type, and evidence before submitting." });
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-[var(--rose)]/40 bg-[var(--rose)]/8 px-4 py-3 flex items-center gap-3">
@@ -46,7 +94,13 @@ function Page() {
           <div className="text-sm font-semibold text-[var(--rose)]">EMERGENCY MODE · 3 critical incidents active in Delhi-NCR</div>
           <div className="text-xs text-muted-foreground mono">CPCB-NCRPB joint enforcement window · GRAP Stage III in effect</div>
         </div>
-        <button className="rounded bg-[var(--rose)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Activate Strike Teams</button>
+        <button
+          onClick={handleActivateStrikeTeams}
+          disabled={activating}
+          className="rounded bg-[var(--rose)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
+        >
+          {activating ? "Activating…" : "Activate Strike Teams"}
+        </button>
       </div>
 
       <PageHeader
@@ -55,10 +109,16 @@ function Page() {
         description="Auto-generated cases from the 7-step breach-to-enforcement pipeline. Every case is hash-chain bound to its originating sensor. Evidence is cryptographically sealed before officer dispatch."
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            >
               <Download className="h-3.5 w-3.5" /> Export
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
+            <button
+              onClick={handleNewCase}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+            >
               <FileText className="h-3.5 w-3.5" /> New Manual Case
             </button>
           </div>
@@ -79,7 +139,6 @@ function Page() {
         ))}
       </div>
 
-      {/* 7-step pipeline mini strip */}
       <Panel title="Breach-to-Enforcement Pipeline" subtitle="Every case flows through all 7 steps — traceable from raw sensor hash to published outcome">
         <div className="flex items-center gap-1 flex-wrap">
           {PIPELINE_STEPS.map((s, idx) => (
@@ -94,16 +153,51 @@ function Page() {
         </div>
       </Panel>
 
-      {/* Incident table */}
       <Panel dense>
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
           <div className="flex items-center gap-2 rounded border border-border bg-background/50 px-2 py-1 text-xs flex-1 max-w-sm">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <input placeholder="Search incidents by ID, city, type…" className="w-full bg-transparent outline-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search incidents by ID, city, type…"
+              className="w-full bg-transparent outline-none"
+            />
           </div>
-          <button className="flex items-center gap-1 rounded border border-border bg-background/50 px-2 py-1 text-xs"><Filter className="h-3.5 w-3.5" /> Filter</button>
-          <button className="flex items-center gap-1 rounded border border-border bg-background/50 px-2 py-1 text-xs"><Download className="h-3.5 w-3.5" /> Export</button>
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className="flex items-center gap-1 rounded border px-2 py-1 text-xs transition-colors"
+            style={{
+              background: showFilter ? "var(--primary)" : "var(--background)",
+              color: showFilter ? "var(--primary-foreground)" : undefined,
+              borderColor: showFilter ? "var(--primary)" : "var(--border)",
+            }}
+          >
+            <Filter className="h-3.5 w-3.5" /> Filter
+          </button>
+          <button onClick={handleExport} className="flex items-center gap-1 rounded border border-border bg-background/50 px-2 py-1 text-xs">
+            <Download className="h-3.5 w-3.5" /> Export
+          </button>
         </div>
+        {showFilter && (
+          <div className="flex items-center gap-1.5 border-b border-border px-4 py-2">
+            <span className="text-[10px] text-muted-foreground mr-1">Severity:</span>
+            {["All", "Critical", "High", "Medium"].map(s => (
+              <button
+                key={s}
+                onClick={() => setSeverityFilter(s)}
+                className="rounded px-2 py-0.5 text-[10px] font-medium transition-colors"
+                style={{
+                  background: severityFilter === s ? "var(--primary)" : "var(--card)",
+                  color: severityFilter === s ? "var(--primary-foreground)" : "var(--muted-foreground)",
+                  border: `1px solid ${severityFilter === s ? "var(--primary)" : "var(--border)"}`,
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="text-[10px] uppercase tracking-wider text-muted-foreground mono">
@@ -114,8 +208,12 @@ function Page() {
               </tr>
             </thead>
             <tbody>
-              {INCIDENTS.map((i) => (
-                <tr key={i.id} className="border-b border-border/40 hover:bg-accent/40 cursor-pointer">
+              {filtered.map((i) => (
+                <tr
+                  key={i.id}
+                  className="border-b border-border/40 hover:bg-accent/40 cursor-pointer"
+                  onClick={() => toast.info(`Case ${i.id}`, { description: `${i.type} · ${i.city} · ${i.severity} severity · Officer: ${i.officer}` })}
+                >
                   <td className="px-4 py-2.5 mono text-primary font-semibold">{i.id}</td>
                   <td className="px-4 py-2.5">{i.city}</td>
                   <td className="px-4 py-2.5">{i.type}</td>
@@ -153,7 +251,6 @@ function Page() {
         </div>
       </Panel>
 
-      {/* Trend + breakdown */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Open vs. Resolved Trend — 14 Days" subtitle="Daily case load across the national grid">
           <div className="h-[200px]">
@@ -188,4 +285,3 @@ function Page() {
     </div>
   );
 }
-

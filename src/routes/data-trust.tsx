@@ -58,7 +58,7 @@ const CONTEXT_PIE = [
   { name: "Indoor", value: 225, color: "var(--chart-3)" },
 ];
 
-export default function Page() {
+function Page() {
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[var(--primary)]/30 bg-[var(--primary)]/6 px-4 py-3 flex items-center gap-3">

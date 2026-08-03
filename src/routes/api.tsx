@@ -43,7 +43,7 @@ const METHOD_COLOR: Record<string, string> = {
   DELETE: "var(--rose)",
 };
 
-export default function Page() {
+function Page() {
   return (
     <div className="space-y-5">
       <PageHeader

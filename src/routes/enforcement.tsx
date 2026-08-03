@@ -6,6 +6,9 @@ import {
   LineChart, Line, CartesianGrid,
 } from "recharts";
 import { AlertOctagon, CheckCircle2, Clock, FileText, Search, Download, ArrowRight, Shield } from "lucide-react";
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/enforcement")({
   head: () => ({ meta: [{ title: "Enforcement Dashboard · Swachh Hawa" }] }),
@@ -78,6 +81,65 @@ const STAGE_COLOR: Record<string, string> = {
 };
 
 export default function Page() {
+  const [search, setSearch] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [selectedDossier, setSelectedDossier] = useState(DOSSIERS[0]);
+
+  const filtered = useMemo(() =>
+    search ? DOSSIERS.filter(d =>
+      d.id.toLowerCase().includes(search.toLowerCase()) ||
+      d.city.toLowerCase().includes(search.toLowerCase()) ||
+      d.source.toLowerCase().includes(search.toLowerCase())
+    ) : DOSSIERS,
+    [search]
+  );
+
+  const handleActivateStrikeTeams = async () => {
+    setActivating(true);
+    toast.loading("Activating Strike Teams…", { id: "strike-teams" });
+    await new Promise(r => setTimeout(r, 1800));
+    setActivating(false);
+    toast.success("Strike Teams Activated", {
+      id: "strike-teams",
+      description: "2 Critical CPCB rapid-response teams dispatched. ETA 18 min to Anand Vihar, 26 min to Ghaziabad-Loni.",
+      duration: 6000,
+    });
+  };
+
+  const handleExport = () => {
+    downloadCsv(
+      filtered.map(d => ({
+        "Case ID": d.id, Location: d.city, "Source Type": d.source,
+        "PM2.5": d.pm25, "NO2": d.no2, Stage: d.stage,
+        Officer: d.officer, "SLA": d.sla, "Hash": d.hash,
+        "Chain Pos": d.chainPos, "Breach Time": d.breach,
+      })),
+      `enforcement-dossiers-${new Date().toISOString().slice(0,10)}.csv`
+    );
+    toast.success(`Exported ${filtered.length} enforcement dossiers as CSV`);
+  };
+
+  const handleDownloadDossier = (d: typeof DOSSIERS[0]) => {
+    toast.success(`Downloading ${d.id}.pdf`, {
+      description: `Evidence bundle: hash-chain readings, Merkle proof, SHAP attribution. Chain pos: ${d.chainPos}.`,
+      duration: 5000,
+    });
+  };
+
+  const handleIssueLegalNotice = (d: typeof DOSSIERS[0]) => {
+    toast.warning("Legal Notice Issued", {
+      description: `Notice under EP Act §17 issued for ${d.id} — ${d.city}. Officer ${d.officer} notified.`,
+      duration: 5000,
+    });
+  };
+
+  const handleAssignStrikeTeam = (d: typeof DOSSIERS[0]) => {
+    toast.info("Strike Team Assigned", {
+      description: `CPCB Rapid Response Team 3 assigned to ${d.id} — ${d.city}. ETA: 22 min.`,
+      duration: 5000,
+    });
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[var(--rose)]/40 bg-[var(--rose)]/8 px-4 py-3 flex items-center gap-3">
@@ -86,7 +148,13 @@ export default function Page() {
           <div className="text-sm font-semibold text-[var(--rose)]">ENFORCEMENT ACTIVE · 5 cases open · 2 critical</div>
           <div className="text-xs text-muted-foreground mono">GRAP Stage III in effect — Delhi-NCR · CPCB joint enforcement window active</div>
         </div>
-        <button className="rounded bg-[var(--rose)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Activate Strike Teams</button>
+        <button
+          onClick={handleActivateStrikeTeams}
+          disabled={activating}
+          className="rounded bg-[var(--rose)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
+        >
+          {activating ? "Activating…" : "Activate Strike Teams"}
+        </button>
       </div>
 
       <PageHeader
@@ -95,17 +163,22 @@ export default function Page() {
         description="End-to-end value stream: Sense → Validate → Detect → Attribute → Dossier → Dispatch → Resolve → Publish. Every dossier is cryptographically bound to the originating sensor chain."
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button
+              onClick={() => toast.info("Search Cases", { description: "Type in the search box below to filter by case ID, city, or source type." })}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            >
               <Search className="h-3.5 w-3.5" /> Search Cases
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            >
               <Download className="h-3.5 w-3.5" /> Export
             </button>
           </div>
         }
       />
 
-      {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
           { l: "Open Cases", v: 28, c: "rose", icon: <AlertOctagon className="h-4 w-4" /> },
@@ -123,7 +196,6 @@ export default function Page() {
         ))}
       </div>
 
-      {/* 7-step pipeline */}
       <Panel title="7-Step Breach-to-Enforcement Value Stream" subtitle="Architectural thesis: any breach traceable from raw sensor hash to published enforcement outcome">
         <div className="flex flex-wrap gap-2 p-2">
           {PIPELINE_STEPS.map((s, idx) => (
@@ -144,8 +216,21 @@ export default function Page() {
         </div>
       </Panel>
 
-      {/* Dossier table */}
       <Panel title="Active Enforcement Dossiers" subtitle="Cryptographic fields included — hash-chain position verifiable via Data Trust Engine" dense>
+        <div className="flex items-center gap-2 border-b border-border px-4 py-2">
+          <div className="flex items-center gap-2 rounded border border-border bg-background/50 px-2 py-1 text-xs flex-1 max-w-sm">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by ID, city, or source…"
+              className="w-full bg-transparent outline-none"
+            />
+          </div>
+          <button onClick={handleExport} className="flex items-center gap-1 rounded border border-border bg-background/50 px-2 py-1 text-xs">
+            <Download className="h-3.5 w-3.5" /> Export
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs table-sticky-col">
             <thead className="text-[10px] uppercase tracking-wider text-muted-foreground mono">
@@ -156,8 +241,13 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {DOSSIERS.map((d) => (
-                <tr key={d.id} className="border-b border-border/40 hover:bg-accent/40 cursor-pointer">
+              {filtered.map((d) => (
+                <tr
+                  key={d.id}
+                  className="border-b border-border/40 hover:bg-accent/40 cursor-pointer"
+                  onClick={() => setSelectedDossier(d)}
+                  style={{ outline: selectedDossier.id === d.id ? "1px solid var(--primary)" : undefined }}
+                >
                   <td className="px-3 py-2.5 mono text-primary font-semibold whitespace-nowrap">{d.id}</td>
                   <td className="px-3 py-2.5 whitespace-nowrap">{d.city}</td>
                   <td className="px-3 py-2.5">{d.source}</td>
@@ -186,19 +276,16 @@ export default function Page() {
         </div>
       </Panel>
 
-      {/* Expanded dossier detail */}
-      <Panel title="Dossier Detail — ENF-2026-0341 · Delhi Anand Vihar" subtitle="Complete evidence bundle with cryptographic provenance">
+      <Panel title={`Dossier Detail — ${selectedDossier.id} · ${selectedDossier.city}`} subtitle="Complete evidence bundle with cryptographic provenance — click any row above to view">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <div className="text-[10px] mono uppercase tracking-wider text-muted-foreground mb-2">Measurement Context</div>
             {[
               ["Device ID", "SH-DEL-0042"],
-              ["measurement_context", "source_proximate"],
-              ["Placement", "12m from stack discharge point"],
-              ["PM2.5 sustained", "356 µg/m³ · 22 min"],
-              ["NO2", "118 µg/m³"],
+              ["measurement_context", selectedDossier.context],
+              ["PM2.5 sustained", `${selectedDossier.pm25} µg/m³`],
+              ["NO2", `${selectedDossier.no2} µg/m³`],
               ["Wind vector", "WSW 3.2 m/s"],
-              ["Dispersion model", "Gaussian plume v2.1 · σy=48m"],
               ["Source confidence", "94.2%"],
             ].map(([k, v]) => (
               <div key={k} className="flex items-center justify-between border-b border-border/30 pb-1 text-xs">
@@ -210,13 +297,11 @@ export default function Page() {
           <div className="space-y-2">
             <div className="text-[10px] mono uppercase tracking-wider text-muted-foreground mb-2">Cryptographic Provenance</div>
             {[
-              ["Hash", "8f3a…d210"],
-              ["Chain position", "4821 (HEAD)"],
+              ["Hash", selectedDossier.hash],
+              ["Chain position", `${selectedDossier.chainPos} (HEAD)`],
               ["Merkle window", "2026-05-30 04:00 UTC"],
               ["Merkle root", "4e7d…9f12"],
               ["Ledger ref", "IPFS:QmT6v…8ba1"],
-              ["HMAC-SHA256 sig", "valid"],
-              ["Trust score", "0.97"],
               ["Verification", "CHAIN_VALID · MERKLE_VALID"],
             ].map(([k, v]) => (
               <div key={k} className="flex items-center justify-between border-b border-border/30 pb-1 text-xs">
@@ -226,20 +311,28 @@ export default function Page() {
             ))}
           </div>
         </div>
-        <div className="mt-4 flex gap-2">
-          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+        <div className="mt-4 flex gap-2 flex-wrap">
+          <button
+            onClick={() => handleDownloadDossier(selectedDossier)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
             <FileText className="h-3.5 w-3.5" /> Download Dossier PDF
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-accent/50">
+          <button
+            onClick={() => handleIssueLegalNotice(selectedDossier)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-accent/50"
+          >
             Issue Legal Notice
           </button>
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-accent/50">
+          <button
+            onClick={() => handleAssignStrikeTeam(selectedDossier)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-accent/50"
+          >
             Assign Strike Team
           </button>
         </div>
       </Panel>
 
-      {/* SLA + resolution charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Average Resolution Time — 14-day Trend" subtitle="Target SLA: 4h from breach detection to officer dispatch">
           <div className="h-[200px]">

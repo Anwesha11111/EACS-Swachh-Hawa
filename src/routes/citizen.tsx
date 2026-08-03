@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent, type FormEvent } from "react";
 import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { IndiaMap } from "@/components/ui-kit/IndiaMap";
@@ -8,6 +8,10 @@ import { CITIES, aqiCategory, FORECAST_DELHI } from "@/lib/mock-data";
 import { Send, MessageCircle, HeartPulse, Activity, Wind, Footprints, Baby, UserRound, Stethoscope, Bike, School, Factory, Loader2 } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, Cell, Tooltip } from "recharts";
 import { useAirGpt, type ChatMessage } from "@/hooks/useLiveData";
+import { submitComplaint } from "@/lib/api/complaints.functions";
+import { getChatHistory, saveChatExchange } from "@/lib/api/chat.functions";
+import { toast } from "sonner";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/citizen")({
   head: () => ({ meta: [{ title: "Citizen Portal · Swachh Hawa" }] }),
@@ -22,24 +26,44 @@ const SEED_MESSAGES: ChatMessage[] = [
 ];
 
 function AirGptPanel() {
+  const { user } = useAuth();
+  const sessionKey = user?.email ?? "anonymous-session";
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const { mutate: ask, isPending } = useAirGpt();
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    getChatHistory({ data: { sessionKey } }).then(res => {
+      if (res.messages && res.messages.length > 0) {
+        setMessages(res.messages);
+      }
+    }).catch(() => {});
+  }, [sessionKey]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages]);
 
   const send = () => {
     const text = input.trim();
     if (!text || isPending) return;
-    const next: ChatMessage[] = [...messages, { role: "user", content: text }];
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const next: ChatMessage[] = [...messages, userMsg];
     setMessages(next);
     setInput("");
+
     ask(next, {
       onSuccess: (res) => {
-        setMessages(m => [...m, { role: "assistant", content: res.reply }]);
+        const assistantMsg: ChatMessage = { role: "assistant", content: res.reply };
+        setMessages(m => [...m, assistantMsg]);
+        saveChatExchange({
+          data: {
+            sessionKey,
+            userMessage: userMsg,
+            assistantMessage: assistantMsg,
+          }
+        }).catch(() => {});
       },
       onError: () => {
         setMessages(m => [...m, { role: "assistant", content: "Sorry, I couldn't reach the server. Please try again." }]);
@@ -95,13 +119,49 @@ function AirGptPanel() {
             <Send className="h-3 w-3" />
           </button>
         </div>
-        <div className="text-[10px] text-muted-foreground">Responses grounded in CPCB/IMD data · DPDP §7(a) compliant · No personal data stored</div>
+        <div className="text-[10px] text-muted-foreground">Responses grounded in CPCB/IMD data · DPDP §7(a) compliant · Persistent history</div>
       </div>
     </Panel>
   );
 }
 
 function Page() {
+  const [submitting, setSubmitting] = useState(false);
+  const [city, setCity] = useState("Delhi");
+  const [location, setLocation] = useState("");
+  const [type, setType] = useState("Industrial smoke");
+  const [description, setDescription] = useState("");
+
+  const handleComplaintSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!location.trim()) {
+      toast.error("Please enter a location");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await submitComplaint({
+        data: {
+          location: location.trim(),
+          type,
+          description: description.trim() || undefined,
+          city: city,
+        }
+      });
+      if (res.ok) {
+        toast.success(res.mode === "live" ? "Complaint registered in Supabase!" : "Complaint submitted (demo mode)");
+        setLocation("");
+        setDescription("");
+      } else {
+        toast.error(res.error ?? "Failed to submit complaint");
+      }
+    } catch {
+      toast.error("Error connecting to server");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -144,9 +204,33 @@ function Page() {
         </div>
       </Panel>
       <Panel title="Submit a Complaint" subtitle="Complaints are cross-correlated with sensor data — verified reports auto-escalate to enforcement queue">
-        <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <input className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm" placeholder="Your location (area / landmark)" />
-          <select className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm">
+        <form onSubmit={handleComplaintSubmit} className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <select
+            value={city}
+            onChange={e => setCity(e.target.value)}
+            className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm"
+          >
+            <option>Delhi</option>
+            <option>Mumbai</option>
+            <option>Kolkata</option>
+            <option>Bengaluru</option>
+            <option>Chennai</option>
+            <option>Patna</option>
+            <option>Lucknow</option>
+            <option>Ahmedabad</option>
+          </select>
+          <input
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm"
+            placeholder="Your location (area / landmark)"
+            required
+          />
+          <select
+            value={type}
+            onChange={e => setType(e.target.value)}
+            className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm"
+          >
             <option>Industrial smoke</option>
             <option>Burning waste / garbage</option>
             <option>Vehicle smoke</option>
@@ -154,8 +238,21 @@ function Page() {
             <option>Brick kiln</option>
             <option>Other</option>
           </select>
-          <input className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm" placeholder="Optional: describe the source" />
-          <button className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">Submit · Anonymous OK</button>
+          <div className="flex gap-2 lg:col-span-1">
+            <input
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              className="flex-1 rounded-md border border-border bg-background/60 px-3 py-2 text-sm"
+              placeholder="Optional: describe the source"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            >
+              {submitting ? "Submitting..." : "Submit"}
+            </button>
+          </div>
         </form>
         <div className="mt-2 text-[10px] text-muted-foreground">
           🔒 Submissions are anonymous by default. Your location is coarsened to neighbourhood level (DPDP §7 compliant). Verified complaints with sensor correlation are escalated to CPCB officers within 4h.

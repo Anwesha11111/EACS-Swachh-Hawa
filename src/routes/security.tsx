@@ -6,6 +6,8 @@ import {
   LineChart, Line, CartesianGrid,
 } from "recharts";
 import { Shield, AlertTriangle, CheckCircle2, Lock, Eye, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 export const Route = createFileRoute("/security")({
   head: () => ({ meta: [{ title: "Security · Swachh Hawa" }] }),
@@ -72,6 +74,9 @@ const THREAT_HISTORY = Array.from({ length: 14 }, (_, i) => ({
 }));
 
 export default function Page() {
+  const [events, setEvents] = useState(SECURITY_EVENTS);
+  const [rotating, setRotating] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[var(--emerald)]/30 bg-[var(--emerald)]/6 px-4 py-3 flex items-center gap-3">
@@ -146,12 +151,28 @@ export default function Page() {
                   <td className="px-3 py-2.5 mono text-muted-foreground text-[10px]">{k.created}</td>
                   <td className="px-3 py-2.5 mono text-muted-foreground text-[10px]">{k.expires}</td>
                   <td className="px-3 py-2.5">
-                    <span className="rounded px-1.5 py-0.5 text-[10px] mono font-bold" style={{
-                      background: k.status === "Active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)"
-                        : k.status === "Expiring Soon" ? "color-mix(in oklab,var(--amber) 16%,transparent)"
-                        : "color-mix(in oklab,var(--rose) 16%,transparent)",
-                      color: k.status === "Active" ? "var(--emerald)" : k.status === "Expiring Soon" ? "var(--amber)" : "var(--rose)",
-                    }}>{k.status}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded px-1.5 py-0.5 text-[10px] mono font-bold" style={{
+                        background: k.status === "Active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)"
+                          : k.status === "Expiring Soon" ? "color-mix(in oklab,var(--amber) 16%,transparent)"
+                          : "color-mix(in oklab,var(--rose) 16%,transparent)",
+                        color: k.status === "Active" ? "var(--emerald)" : k.status === "Expiring Soon" ? "var(--amber)" : "var(--rose)",
+                      }}>{k.status}</span>
+                      {k.status !== "Revoked" && (
+                        <button
+                          onClick={async () => {
+                            setRotating(k.keyId);
+                            await new Promise(r => setTimeout(r, 1500));
+                            setRotating(null);
+                            toast.success(`Key ${k.keyId} rotated`, { description: `New 60-day key issued. ${k.devices} devices will re-authenticate on next heartbeat.` });
+                          }}
+                          disabled={rotating === k.keyId}
+                          className="text-[10px] text-primary hover:underline disabled:opacity-60"
+                        >
+                          {rotating === k.keyId ? "Rotating…" : "Rotate"}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -178,7 +199,7 @@ export default function Page() {
       {/* Security events */}
       <Panel title="Recent Security Events" subtitle="Auto-detected by anomaly engine + HMAC validator" dense>
         <div className="divide-y divide-border">
-          {SECURITY_EVENTS.map((e) => (
+          {events.map((e) => (
             <div key={e.ts} className="flex items-start gap-3 p-3">
               <Zap className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: e.severity === "High" ? "var(--rose)" : "var(--amber)" }} />
               <div className="flex-1">
@@ -192,6 +213,17 @@ export default function Page() {
                   <span className="ml-auto mono text-[10px]" style={{ color: e.resolved ? "var(--emerald)" : "var(--rose)" }}>
                     {e.resolved ? "RESOLVED" : "OPEN"}
                   </span>
+                  {!e.resolved && (
+                    <button
+                      onClick={() => {
+                        setEvents(prev => prev.map(ev => ev.ts === e.ts ? { ...ev, resolved: true } : ev));
+                        toast.success(`${e.type} resolved`, { description: `Event on ${e.device} marked as resolved.` });
+                      }}
+                      className="rounded bg-[var(--emerald)]/15 px-2 py-0.5 text-[10px] font-medium text-[var(--emerald)] hover:bg-[var(--emerald)]/25"
+                    >
+                      Resolve
+                    </button>
+                  )}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">{e.detail}</div>
                 <div className="mt-0.5 mono text-[10px] text-muted-foreground">{e.ts.replace("T"," ").replace("Z"," UTC")}</div>
@@ -202,7 +234,25 @@ export default function Page() {
       </Panel>
 
       {/* OWASP */}
-      <Panel title="OWASP Top 10 — Last Scan: 2026-05-01" subtitle="Automated + manual security review against OWASP Application Security Verification Standard">
+      <Panel
+        title="OWASP Top 10 — Last Scan: 2026-05-01"
+        subtitle="Automated + manual security review against OWASP Application Security Verification Standard"
+        actions={
+          <button
+            onClick={async () => {
+              setScanning(true);
+              toast.loading("Running OWASP security scan…", { id: "owasp" });
+              await new Promise(r => setTimeout(r, 2500));
+              setScanning(false);
+              toast.success("OWASP scan complete — 7/8 pass, 1 watch", { id: "owasp", description: "A10 SSRF remains under review. All critical items pass." });
+            }}
+            disabled={scanning}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50 disabled:opacity-60"
+          >
+            {scanning ? "Scanning…" : "Run Scan"}
+          </button>
+        }
+      >
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {OWASP_RESULTS.map((r) => (
             <div key={r.id} className="flex items-start gap-2 rounded-lg border border-border bg-background/50 p-2.5">

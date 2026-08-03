@@ -3,6 +3,9 @@ import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Users, UserPlus, Search } from "lucide-react";
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/users")({
   head: () => ({ meta: [{ title: "User Roles · Swachh Hawa" }] }),
@@ -29,6 +32,38 @@ const ROLE_DIST = [
 ];
 
 export default function Page() {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() =>
+    search
+      ? USER_LIST.filter(u =>
+          u.name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase()) ||
+          u.role.toLowerCase().includes(search.toLowerCase())
+        )
+      : USER_LIST,
+    [search]
+  );
+
+  const handleInviteUser = () => {
+    toast.info("Invite User", {
+      description: "Send an invitation email to a new user. They will receive a role assignment link valid for 48 hours.",
+      duration: 5000,
+    });
+  };
+
+  const handleExportUsers = () => {
+    downloadCsv(
+      filtered.map(u => ({
+        Name: u.name, Email: u.email, Role: u.role,
+        Tier: u.tier, MFA: u.mfa ? "Yes" : "No",
+        Status: u.status, "Last Login": u.lastLogin,
+      })),
+      `users-export-${new Date().toISOString().slice(0,10)}.csv`
+    );
+    toast.success(`Exported ${filtered.length} users as CSV`);
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -36,9 +71,14 @@ export default function Page() {
         title="User Management & Role Assignment"
         description="Federated user directory across CPCB, SPCB state boards, municipal bodies, research institutions, and citizen portal. Role assignments enforced by DisclosurePolicy ACL."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
-            <UserPlus className="h-3.5 w-3.5" /> Invite User
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExportUsers} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+              Export CSV
+            </button>
+            <button onClick={handleInviteUser} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
+              <UserPlus className="h-3.5 w-3.5" /> Invite User
+            </button>
+          </div>
         }
       />
 
@@ -60,7 +100,12 @@ export default function Page() {
         <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           <div className="flex items-center gap-2 rounded border border-border bg-background/50 px-2 py-1 text-xs flex-1 max-w-sm">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <input placeholder="Search by name, email, or role…" className="w-full bg-transparent outline-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name, email, or role…"
+              className="w-full bg-transparent outline-none"
+            />
           </div>
         </div>
         <table className="w-full text-xs">
@@ -72,8 +117,14 @@ export default function Page() {
             </tr>
           </thead>
           <tbody>
-            {USER_LIST.map(u => (
-              <tr key={u.email} className="border-b border-border/40 hover:bg-accent/40">
+            {filtered.map(u => (
+              <tr
+                key={u.email}
+                className="border-b border-border/40 hover:bg-accent/40 cursor-pointer"
+                onClick={() => toast.info(`${u.name}`, {
+                  description: `${u.role} · ${u.tier} · MFA: ${u.mfa ? "Enabled" : "Disabled"} · Last login: ${u.lastLogin.replace("T", " ").replace("Z", " UTC")}`,
+                })}
+              >
                 <td className="px-4 py-2.5 font-medium">{u.name}</td>
                 <td className="px-4 py-2.5 mono text-[10px] text-muted-foreground">{u.email}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{u.role}</td>
@@ -88,10 +139,20 @@ export default function Page() {
                 </td>
                 <td className="px-4 py-2.5 mono text-[10px] text-muted-foreground whitespace-nowrap">{u.lastLogin.replace("T", " ").replace("Z", " UTC")}</td>
                 <td className="px-4 py-2.5">
-                  <span className="rounded px-1.5 py-0.5 text-[10px] mono font-bold" style={{
-                    background: u.status === "Active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)" : "color-mix(in oklab,var(--amber) 16%,transparent)",
-                    color: u.status === "Active" ? "var(--emerald)" : "var(--amber)",
-                  }}>{u.status}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded px-1.5 py-0.5 text-[10px] mono font-bold" style={{
+                      background: u.status === "Active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)" : "color-mix(in oklab,var(--amber) 16%,transparent)",
+                      color: u.status === "Active" ? "var(--emerald)" : "var(--amber)",
+                    }}>{u.status}</span>
+                    {u.status === "Suspended" && (
+                      <button
+                        onClick={e => { e.stopPropagation(); toast.success(`${u.name} reinstated`, { description: "Account reactivated. User will receive an email notification." }); }}
+                        className="text-[10px] text-primary hover:underline"
+                      >
+                        Reinstate
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

@@ -44,6 +44,15 @@ const PAGE_TITLES: Record<string, string> = {
   "/security":         "Security",
   "/system":           "System Health",
   "/settings":         "Settings",
+  "/ea-overview":          "EA Overview",
+  "/ea-system-architecture": "System Architecture",
+  "/ea-capability":        "Capability Model",
+  "/ea-operating-model":   "Operating Model",
+  "/ea-data-arch":         "Data Architecture",
+  "/ea-integration":       "Integration Architecture",
+  "/ea-ledger":            "Ledger Design",
+  "/ea-security-dpia":     "Security & DPIA",
+  "/ea-metamodel":         "EA Metamodel",
   "/command-center":   "Command Center",
   "/citizen":          "Citizen Portal",
 };
@@ -159,7 +168,14 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           {/* Notifications */}
           <div ref={notifRef} className="relative">
             <button
-              onClick={() => { setNotifOpen((o) => !o); setUserOpen(false); }}
+              onClick={() => {
+                setNotifOpen((o) => {
+                  const next = !o;
+                  if (next) markAllRead();
+                  return next;
+                });
+                setUserOpen(false);
+              }}
               className="relative flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card/60 hover:bg-accent transition"
               aria-label="Notifications"
             >

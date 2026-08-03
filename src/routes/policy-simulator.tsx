@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { useState } from "react";
 import { Play, Save, Share2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/policy-simulator")({
   head: () => ({ meta: [{ title: "Policy Simulator · Swachh Hawa" }] }),
@@ -38,10 +39,41 @@ const OUTCOME_TIMELINE = Array.from({ length: 30 }, (_, i) => ({
 
 export default function Page() {
   const [selected, setSelected] = useState<string[]>([]);
+  const [running, setRunning] = useState(false);
 
   const totalImpact = POLICIES
     .filter(p => selected.includes(p.id))
     .reduce((acc, p) => acc + p.aqiImpact, 0);
+
+  const handleRunSimulation = async () => {
+    if (selected.length === 0) {
+      toast.error("Select at least one policy lever to run the simulation");
+      return;
+    }
+    setRunning(true);
+    toast.loading("Running LGBM causal simulation…", { id: "sim" });
+    await new Promise(r => setTimeout(r, 2000));
+    setRunning(false);
+    const projected = Math.max(0, 230 + totalImpact);
+    toast.success("Simulation complete", {
+      id: "sim",
+      description: `${selected.length} policies applied · Projected AQI: ${projected} · Reduction: ${Math.abs(totalImpact)} points`,
+      duration: 6000,
+    });
+  };
+
+  const handleSaveScenario = () => {
+    const names = POLICIES.filter(p => selected.includes(p.id)).map(p => p.name);
+    toast.success("Scenario saved", {
+      description: names.length > 0 ? names.join(" + ") : "Empty scenario saved",
+      duration: 4000,
+    });
+  };
+
+  const handleShare = () => {
+    const url = window.location.href + `?scenario=${selected.join(",")}`;
+    navigator.clipboard?.writeText(url).then(() => toast.success("Scenario link copied to clipboard!"));
+  };
 
   return (
     <div className="space-y-5">
@@ -51,11 +83,14 @@ export default function Page() {
         description="Select policy levers and model their combined AQI impact. Estimates calibrated against CPCB historical data and IITD dispersion model outputs. GRAP stage implications shown automatically."
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button onClick={handleSaveScenario} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
               <Save className="h-3.5 w-3.5" /> Save Scenario
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button onClick={handleShare} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
               <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
+            <button onClick={handleRunSimulation} disabled={running} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60">
+              <Play className="h-3.5 w-3.5" /> {running ? "Simulating…" : "Run Simulation"}
             </button>
           </div>
         }

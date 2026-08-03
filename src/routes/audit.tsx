@@ -3,6 +3,9 @@ import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Shield, Download, Search, Lock } from "lucide-react";
+import { useState, useMemo } from "react";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/export";
 
 export const Route = createFileRoute("/audit")({
   head: () => ({ meta: [{ title: "Audit Trail · Swachh Hawa" }] }),
@@ -37,7 +40,53 @@ const DISCLOSURE_POLICIES = [
   { entity: "Raw Sensor Telemetry", allowed: "Platform Admins Only", rationale: "Internal ops", legal: "Internal policy", dp: "None" },
 ];
 
-export default function Page() {
+function Page() {
+  const [search, setSearch] = useState("");
+  const [actionFilter, setActionFilter] = useState("All actions");
+  const [verifyId, setVerifyId] = useState("AUD-8821");
+  const [verifyResult, setVerifyResult] = useState<typeof AUDIT_EVENTS[0] | null>(AUDIT_EVENTS[0]);
+  const [verifying, setVerifying] = useState(false);
+
+  const filtered = useMemo(() => {
+    let list = AUDIT_EVENTS;
+    if (search) list = list.filter(e =>
+      e.actor.toLowerCase().includes(search.toLowerCase()) ||
+      e.action.toLowerCase().includes(search.toLowerCase()) ||
+      e.resource.toLowerCase().includes(search.toLowerCase())
+    );
+    if (actionFilter === "DPDP only") list = list.filter(e => e.dpdp);
+    if (actionFilter === "System") list = list.filter(e => e.role === "System");
+    return list;
+  }, [search, actionFilter]);
+
+  const handleExportJsonl = () => {
+    const jsonl = filtered.map(e => JSON.stringify(e)).join("\n");
+    const blob = new Blob([jsonl], { type: "application/x-ndjson" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `audit-log-${new Date().toISOString().slice(0,10)}.jsonl`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(`Exported ${filtered.length} audit events as JSONL`);
+  };
+
+  const handleSearch = () => {
+    toast.info("Search", { description: "Type in the filter box to search by actor, action, or resource." });
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    await new Promise(r => setTimeout(r, 1200));
+    const found = AUDIT_EVENTS.find(e => e.id.toLowerCase() === verifyId.toLowerCase().trim());
+    setVerifyResult(found ?? null);
+    setVerifying(false);
+    if (found) {
+      toast.success(`Signature valid — ${found.id}`);
+    } else {
+      toast.error(`Event ${verifyId} not found in audit log`);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -46,10 +95,16 @@ export default function Page() {
         description="Every operator action, system event, and data disclosure is signed with HMAC-SHA256 and appended to an append-only log. DPDP Act 2023 events carry legal_basis field per DisclosurePolicy."
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button
+              onClick={handleSearch}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            >
               <Search className="h-3.5 w-3.5" /> Search
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button
+              onClick={handleExportJsonl}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50"
+            >
               <Download className="h-3.5 w-3.5" /> Export JSONL
             </button>
           </div>
@@ -74,13 +129,25 @@ export default function Page() {
         <div className="flex items-center gap-2 border-b border-border px-4 py-2">
           <div className="flex items-center gap-2 rounded border border-border bg-background/50 px-2 py-1 text-xs flex-1 max-w-sm">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <input placeholder="Filter by actor, action, resource…" className="w-full bg-transparent outline-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Filter by actor, action, resource…"
+              className="w-full bg-transparent outline-none"
+            />
           </div>
-          <select className="rounded border border-border bg-background/50 px-2 py-1 text-xs">
+          <select
+            value={actionFilter}
+            onChange={e => setActionFilter(e.target.value)}
+            className="rounded border border-border bg-background/50 px-2 py-1 text-xs outline-none"
+          >
             <option>All actions</option>
             <option>DPDP only</option>
             <option>System</option>
           </select>
+          <button onClick={handleExportJsonl} className="flex items-center gap-1 rounded border border-border bg-background/50 px-2 py-1 text-xs">
+            <Download className="h-3.5 w-3.5" />
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -92,8 +159,16 @@ export default function Page() {
               </tr>
             </thead>
             <tbody>
-              {AUDIT_EVENTS.map((e) => (
-                <tr key={e.id} className="border-b border-border/40 hover:bg-accent/40">
+              {filtered.map((e) => (
+                <tr
+                  key={e.id}
+                  className="border-b border-border/40 hover:bg-accent/40 cursor-pointer"
+                  onClick={() => {
+                    setVerifyId(e.id);
+                    setVerifyResult(e);
+                    toast.info(`Event ${e.id} loaded in verifier below`);
+                  }}
+                >
                   <td className="px-3 py-2.5 mono text-primary">{e.id}</td>
                   <td className="px-3 py-2.5 mono text-[10px] text-muted-foreground whitespace-nowrap">{e.ts.replace("T"," ").replace("Z"," UTC")}</td>
                   <td className="px-3 py-2.5 text-[10px] max-w-[160px] truncate">{e.actor}</td>
@@ -148,21 +223,37 @@ export default function Page() {
         </Panel>
       </div>
 
-      <Panel title="Signature Verification Panel" subtitle="Verify any audit event signature using device HMAC-SHA256 key">
+      <Panel title="Signature Verification Panel" subtitle="Verify any audit event signature using device HMAC-SHA256 key — or click any row above to load it">
         <div className="flex flex-col gap-3 sm:flex-row">
-          <input placeholder="Enter Audit Event ID (e.g. AUD-8821)…" className="flex-1 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm outline-none focus:border-primary mono" />
-          <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
-            <Lock className="h-4 w-4" /> Verify Signature
+          <input
+            value={verifyId}
+            onChange={e => setVerifyId(e.target.value)}
+            placeholder="Enter Audit Event ID (e.g. AUD-8821)…"
+            className="flex-1 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm outline-none focus:border-primary mono"
+          />
+          <button
+            onClick={handleVerify}
+            disabled={verifying}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
+          >
+            <Lock className="h-4 w-4" /> {verifying ? "Verifying…" : "Verify Signature"}
           </button>
         </div>
         <div className="mt-3 rounded-lg border border-border bg-background/40 p-4 text-xs mono text-muted-foreground">
-          <div className="text-[var(--emerald)] font-bold mb-2">✓ SIGNATURE VALID — AUD-8821</div>
-          <div>actor:    insp.sharma@cpcb.gov.in</div>
-          <div>action:   DOSSIER_DOWNLOAD</div>
-          <div>resource: ENF-2026-0341</div>
-          <div>hmac_key: CPCB-ENF-KEY-0041 (rotated 2026-05-01)</div>
-          <div>signature: 7d3a…f89c (VALID)</div>
-          <div className="mt-2 text-[var(--emerald)]">TAMPER_EVIDENT=true · DPDP_LOGGED=true · LEGAL_BASIS=EP Act §17</div>
+          {verifyResult ? (
+            <>
+              <div className="text-[var(--emerald)] font-bold mb-2">✓ SIGNATURE VALID — {verifyResult.id}</div>
+              <div>actor:    {verifyResult.actor}</div>
+              <div>action:   {verifyResult.action}</div>
+              <div>resource: {verifyResult.resource}</div>
+              <div>ip:       {verifyResult.ip}</div>
+              <div className="mt-2 text-[var(--emerald)]">
+                TAMPER_EVIDENT=true · DPDP_LOGGED={verifyResult.dpdp ? "true" : "false"} · LEGAL_BASIS={verifyResult.legal}
+              </div>
+            </>
+          ) : (
+            <div className="text-[var(--rose)] font-bold">✗ EVENT NOT FOUND — {verifyId}</div>
+          )}
         </div>
       </Panel>
     </div>

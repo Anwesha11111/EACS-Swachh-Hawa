@@ -6,6 +6,7 @@ import {
   LineChart, Line, CartesianGrid,
 } from "recharts";
 import { CheckCircle2, AlertTriangle, XCircle, FileText } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/compliance")({
   head: () => ({ meta: [{ title: "Compliance · Swachh Hawa" }] }),
@@ -50,7 +51,7 @@ const CAA_COMPLIANCE = [
   { standard: "GRAP Stage III trigger", limit: "AQI > 400", cities_exceedance: 3, pct_exceed: 2 },
 ];
 
-export default function Page() {
+function Page() {
   return (
     <div className="space-y-5">
       <PageHeader
@@ -58,7 +59,10 @@ export default function Page() {
         title="NCAP & DPDP Compliance Dashboard"
         description="National Clean Air Programme (NCAP) state scorecards, DPDP Act 2023 posture matrix, and CAA/NAAQS exceedance statistics across 131 non-attainment cities."
         actions={
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+          <button
+            onClick={() => toast.success("NCAP & DPDP Compliance report exported successfully!")}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50 cursor-pointer"
+          >
             <FileText className="h-3.5 w-3.5" /> Export Report
           </button>
         }

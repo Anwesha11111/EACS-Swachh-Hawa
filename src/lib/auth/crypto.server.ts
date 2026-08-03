@@ -44,8 +44,12 @@ async function pbkdf2(password: string, salt: Uint8Array): Promise<Uint8Array> {
     false,
     ["deriveBits"],
   );
+  // Cast salt to the concrete ArrayBuffer-backed type that WebCrypto expects.
+  const saltBuf = salt.buffer instanceof ArrayBuffer
+    ? salt
+    : new Uint8Array(Array.from(salt));
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: saltBuf as unknown as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     keyMaterial,
     PBKDF2_BITS,
   );
