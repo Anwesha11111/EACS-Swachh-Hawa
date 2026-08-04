@@ -69,6 +69,7 @@ const NAV: Group[] = [
   {
     label: "Research",
     items: [
+      { to: "/explore",          label: "Explore Features",   icon: Sparkles, badge: "NEW" },
       { to: "/sandbox",          label: "Open Data Sandbox",  icon: Database },
       { to: "/api",              label: "Research APIs",      icon: Code2 },
       { to: "/data-trust",       label: "Data Trust Engine",  icon: LockIcon },

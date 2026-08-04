@@ -55,6 +55,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ApiRouteImport } from './routes/api'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CityCityIdRouteImport } from './routes/city.$cityId'
 
 const WhatIfRoute = WhatIfRouteImport.update({
   id: '/what-if',
@@ -286,6 +287,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CityCityIdRoute = CityCityIdRouteImport.update({
+  id: '/city/$cityId',
+  path: '/city/$cityId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/vehicles': typeof VehiclesRoute
   '/what-if': typeof WhatIfRoute
+  '/city/$cityId': typeof CityCityIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/vehicles': typeof VehiclesRoute
   '/what-if': typeof WhatIfRoute
+  '/city/$cityId': typeof CityCityIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/vehicles': typeof VehiclesRoute
   '/what-if': typeof WhatIfRoute
+  '/city/$cityId': typeof CityCityIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -481,6 +490,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/vehicles'
     | '/what-if'
+    | '/city/$cityId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -529,6 +539,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/vehicles'
     | '/what-if'
+    | '/city/$cityId'
   id:
     | '__root__'
     | '/'
@@ -577,6 +588,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/vehicles'
     | '/what-if'
+    | '/city/$cityId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -626,6 +638,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRoute
   VehiclesRoute: typeof VehiclesRoute
   WhatIfRoute: typeof WhatIfRoute
+  CityCityIdRoute: typeof CityCityIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -952,6 +965,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/city/$cityId': {
+      id: '/city/$cityId'
+      path: '/city/$cityId'
+      fullPath: '/city/$cityId'
+      preLoaderRoute: typeof CityCityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1002,6 +1022,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRoute,
   VehiclesRoute: VehiclesRoute,
   WhatIfRoute: WhatIfRoute,
+  CityCityIdRoute: CityCityIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -6,13 +6,13 @@
 **Dependencies:** None  
 
 ### Subtasks
-- [ ] Add click-based state management for all 5 top-row filters (Country, State, City, Metric, Period)
-- [ ] Add state management for forecast city dropdown (Delhi/Mumbai/Bangalore/Chennai)
-- [ ] Add state management for heatmap metric dropdown (PM2.5/AQI/PM10/NO₂)
-- [ ] Add state management for trend period dropdown (24H/7 Days/30 Days)
-- [ ] Close dropdowns on selection to prevent state conflicts
-- [ ] Test all dropdowns toggle correctly on click
-- [ ] Verify dropdown z-index positioning doesn't conflict with other elements
+- [x] Add click-based state management for all 5 top-row filters (Country, State, City, Metric, Period)
+- [-] Add state management for forecast city dropdown (Delhi/Mumbai/Bangalore/Chennai)
+- [-] Add state management for heatmap metric dropdown (PM2.5/AQI/PM10/NO₂)
+- [-] Add state management for trend period dropdown (24H/7 Days/30 Days)
+- [-] Close dropdowns on selection to prevent state conflicts
+- [-] Test all dropdowns toggle correctly on click
+- [~] Verify dropdown z-index positioning doesn't conflict with other elements
 
 ### Acceptance Criteria
 - All dropdowns use click-based state instead of CSS hover
@@ -29,11 +29,11 @@
 **Dependencies:** None  
 
 ### Subtasks
-- [ ] Verify Layers, Satellite, Wind, Drones, MVU buttons have click handlers
-- [ ] Ensure toggleLayer() function properly updates activeLayers state
-- [ ] Add proper toast notifications for layer visibility changes
-- [ ] Test button styling reflects active/inactive state
-- [ ] Verify map updates when layers are toggled
+- [~] Verify Layers, Satellite, Wind, Drones, MVU buttons have click handlers
+- [~] Ensure toggleLayer() function properly updates activeLayers state
+- [~] Add proper toast notifications for layer visibility changes
+- [~] Test button styling reflects active/inactive state
+- [~] Verify map updates when layers are toggled
 
 ### Acceptance Criteria
 - All 5 layer buttons respond to clicks
@@ -50,13 +50,13 @@
 **Dependencies:** None  
 
 ### Subtasks
-- [ ] Add onClick handler to all dataset download buttons
-- [ ] Create handleDownloadDataset() function with proper file handling
-- [ ] Show loading toast before download starts
-- [ ] Display download success toast with file info
-- [ ] Handle download errors gracefully with error toast
-- [ ] Test all 4 datasets download correctly
-- [ ] Verify file names and metadata display in toasts
+- [~] Add onClick handler to all dataset download buttons
+- [~] Create handleDownloadDataset() function with proper file handling
+- [~] Show loading toast before download starts
+- [~] Display download success toast with file info
+- [~] Handle download errors gracefully with error toast
+- [~] Test all 4 datasets download correctly
+- [~] Verify file names and metadata display in toasts
 
 ### Acceptance Criteria
 - All 4 datasets have working download buttons
@@ -73,13 +73,13 @@
 **Dependencies:** None  
 
 ### Subtasks
-- [ ] Add onClick handler to OpenAPI Spec button
-- [ ] Add onClick handler to Request API Key button
-- [ ] Create handleOpenAPISpec() function - opens spec in new tab
-- [ ] Create handleRequestAPIKey() function - opens request form in new tab
-- [ ] Show appropriate loading and success toasts
-- [ ] Test both buttons open correct external links
-- [ ] Verify toast messages are helpful and accurate
+- [~] Add onClick handler to OpenAPI Spec button
+- [~] Add onClick handler to Request API Key button
+- [~] Create handleOpenAPISpec() function - opens spec in new tab
+- [~] Create handleRequestAPIKey() function - opens request form in new tab
+- [~] Show appropriate loading and success toasts
+- [~] Test both buttons open correct external links
+- [~] Verify toast messages are helpful and accurate
 
 ### Acceptance Criteria
 - OpenAPI Spec button opens OpenAPI 3.1 specification
@@ -96,14 +96,14 @@
 **Dependencies:** Task 3 (similar pattern)  
 
 ### Subtasks
-- [ ] Verify generateReport() function works correctly
-- [ ] Verify getReportStatus() polling mechanism works
-- [ ] Verify downloadReport() handles file serving
-- [ ] Test CSV export for all report types
-- [ ] Test PDF download for published reports
-- [ ] Test PDF+Shapefile downloads for atlas reports
-- [ ] Verify error messages show if download fails
-- [ ] Test "Generate Custom Report" button with proper async handling
+- [~] Verify generateReport() function works correctly
+- [~] Verify getReportStatus() polling mechanism works
+- [~] Verify downloadReport() handles file serving
+- [~] Test CSV export for all report types
+- [~] Test PDF download for published reports
+- [~] Test PDF+Shapefile downloads for atlas reports
+- [~] Verify error messages show if download fails
+- [~] Test "Generate Custom Report" button with proper async handling
 
 ### Acceptance Criteria
 - All report download buttons work without errors
@@ -121,14 +121,14 @@
 **Dependencies:** None  
 
 ### Subtasks
-- [ ] Add onClick handler to SQL "Run" button
-- [ ] Create handleRunQuery() function
-- [ ] Show loading toast while query executes
-- [ ] Simulate query execution (500-1000ms delay)
-- [ ] Display success toast with result count and timing
-- [ ] Mock actual query results if needed
-- [ ] Handle query errors with error toast
-- [ ] Test multiple sequential query runs
+- [~] Add onClick handler to SQL "Run" button
+- [~] Create handleRunQuery() function
+- [~] Show loading toast while query executes
+- [~] Simulate query execution (500-1000ms delay)
+- [~] Display success toast with result count and timing
+- [~] Mock actual query results if needed
+- [~] Handle query errors with error toast
+- [~] Test multiple sequential query runs
 
 ### Acceptance Criteria
 - Run button shows loading state
@@ -145,13 +145,13 @@
 **Dependencies:** Task 5  
 
 ### Subtasks
-- [ ] Review all report category filter buttons (All, Quarterly, NCAP, Atlas, Enforcement, Health)
-- [ ] Verify category filtering works correctly
-- [ ] Test switching between categories updates displayed reports
-- [ ] Test "Generate Custom Report" modal functionality
-- [ ] Verify report generation async flow
-- [ ] Test polling for report completion
-- [ ] Verify download buttons update after report completion
+- [~] Review all report category filter buttons (All, Quarterly, NCAP, Atlas, Enforcement, Health)
+- [~] Verify category filtering works correctly
+- [~] Test switching between categories updates displayed reports
+- [~] Test "Generate Custom Report" modal functionality
+- [~] Verify report generation async flow
+- [~] Test polling for report completion
+- [~] Verify download buttons update after report completion
 
 ### Acceptance Criteria
 - Category buttons filter correctly
@@ -168,12 +168,12 @@
 **Dependencies:** Task 3, Task 6  
 
 ### Subtasks
-- [ ] Verify all dataset download buttons have handlers
-- [ ] Verify SQL Run button has handler
-- [ ] Test Report links are clickable
-- [ ] Add hover effects to report items
-- [ ] Verify API endpoint list displays correctly
-- [ ] Test that clicking reports shows appropriate action
+- [~] Verify all dataset download buttons have handlers
+- [~] Verify SQL Run button has handler
+- [~] Test Report links are clickable
+- [~] Add hover effects to report items
+- [~] Verify API endpoint list displays correctly
+- [~] Test that clicking reports shows appropriate action
 
 ### Acceptance Criteria
 - All interactive elements respond to clicks
@@ -190,13 +190,13 @@
 **Dependencies:** Tasks 1-8  
 
 ### Subtasks
-- [ ] Create error boundary component if missing
-- [ ] Catch unhandled button click errors
-- [ ] Display generic error toast for unexpected failures
-- [ ] Log errors to console for debugging
-- [ ] Test error boundary catches render errors
-- [ ] Verify app continues functioning after error
-- [ ] Test toast notifications work across all button handlers
+- [~] Create error boundary component if missing
+- [~] Catch unhandled button click errors
+- [~] Display generic error toast for unexpected failures
+- [~] Log errors to console for debugging
+- [~] Test error boundary catches render errors
+- [~] Verify app continues functioning after error
+- [~] Test toast notifications work across all button handlers
 
 ### Acceptance Criteria
 - Unhandled errors don't crash the app
@@ -213,16 +213,16 @@
 **Dependencies:** Tasks 1-9  
 
 ### Subtasks
-- [ ] Test all dropdowns on dashboard page
-- [ ] Test all buttons on data access page
-- [ ] Test all buttons on sandbox page
-- [ ] Test all buttons on API page
-- [ ] Test all buttons on reports page
-- [ ] Test all buttons on other pages with interactive elements
-- [ ] Verify no console errors on any page
-- [ ] Test on multiple browsers (Chrome, Firefox, Safari)
-- [ ] Test mobile responsiveness of buttons and dropdowns
-- [ ] Document any remaining issues
+- [~] Test all dropdowns on dashboard page
+- [~] Test all buttons on data access page
+- [~] Test all buttons on sandbox page
+- [~] Test all buttons on API page
+- [~] Test all buttons on reports page
+- [~] Test all buttons on other pages with interactive elements
+- [~] Verify no console errors on any page
+- [~] Test on multiple browsers (Chrome, Firefox, Safari)
+- [~] Test mobile responsiveness of buttons and dropdowns
+- [~] Document any remaining issues
 
 ### Acceptance Criteria
 - All buttons respond to clicks correctly
