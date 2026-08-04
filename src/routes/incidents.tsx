@@ -10,6 +10,8 @@ import { INCIDENTS } from "@/lib/mock-data";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { downloadCsv } from "@/lib/export";
+import { NewIncidentModal } from "@/components/modals/NewIncidentModal";
+import { getIncidents, activateStrikeTeams, createIncident } from "@/lib/api";
 
 export const Route = createFileRoute("/incidents")({
   head: () => ({ meta: [{ title: "Enforcement · Swachh Hawa" }] }),
@@ -45,6 +47,7 @@ function Page() {
   const [activating, setActivating] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<string>("All");
+  const [showNewIncidentModal, setShowNewIncidentModal] = useState(false);
 
   const filtered = useMemo(() => {
     let list = INCIDENTS;
@@ -60,13 +63,27 @@ function Page() {
   const handleActivateStrikeTeams = async () => {
     setActivating(true);
     toast.loading("Activating Strike Teams…", { id: "strike" });
-    await new Promise(r => setTimeout(r, 1800));
-    setActivating(false);
-    toast.success("Strike Teams Activated", {
-      id: "strike",
-      description: "3 CPCB rapid-response teams dispatched to Delhi-NCR. ETAs: 18 min, 24 min, 31 min.",
-      duration: 5000,
-    });
+    
+    try {
+      const result = await activateStrikeTeams({ data: { city: "Delhi" } });
+      
+      const etaStr = Array.isArray(result.eta_minutes) 
+        ? result.eta_minutes.join(", ") 
+        : result.eta_minutes;
+      
+      toast.success("Strike Teams Activated", {
+        id: "strike",
+        description: `${result.teams_count} CPCB rapid-response teams dispatched. ETAs: ${etaStr} min.`,
+        duration: 5000,
+      });
+    } catch (err) {
+      toast.error("Failed to activate strike teams", {
+        id: "strike",
+        description: String(err),
+      });
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleExport = () => {
@@ -83,7 +100,7 @@ function Page() {
   };
 
   const handleNewCase = () => {
-    toast.info("New Manual Case", { description: "Case form opened — fill in location, type, and evidence before submitting." });
+    setShowNewIncidentModal(true);
   };
 
   return (
@@ -123,6 +140,15 @@ function Page() {
             </button>
           </div>
         }
+      />
+
+      <NewIncidentModal
+        open={showNewIncidentModal}
+        onOpenChange={setShowNewIncidentModal}
+        onSuccess={() => {
+          // Refresh incidents list if needed
+          setShowNewIncidentModal(false);
+        }}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

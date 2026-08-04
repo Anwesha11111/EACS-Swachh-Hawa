@@ -10,7 +10,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "setup": "node scripts/setup-backend.js",
+    "db:migrate": "echo 'Run migrations in Supabase SQL Editor: supabase/migrations/*.sql'",
+    "db:seed": "echo 'Seed data is in: supabase/migrations/003_seed_data.sql'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

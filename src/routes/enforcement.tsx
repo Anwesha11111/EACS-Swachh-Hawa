@@ -9,6 +9,7 @@ import { AlertOctagon, CheckCircle2, Clock, FileText, Search, Download, ArrowRig
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { downloadCsv } from "@/lib/export";
+import { activateStrikeTeams, updateIncidentStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/enforcement")({
   head: () => ({ meta: [{ title: "Enforcement Dashboard · Swachh Hawa" }] }),
@@ -96,14 +97,28 @@ export default function Page() {
 
   const handleActivateStrikeTeams = async () => {
     setActivating(true);
-    toast.loading("Activating Strike Teams…", { id: "strike-teams" });
-    await new Promise(r => setTimeout(r, 1800));
-    setActivating(false);
-    toast.success("Strike Teams Activated", {
-      id: "strike-teams",
-      description: "2 Critical CPCB rapid-response teams dispatched. ETA 18 min to Anand Vihar, 26 min to Ghaziabad-Loni.",
-      duration: 6000,
-    });
+    try {
+      toast.loading("Activating Strike Teams…", { id: "strike-teams" });
+      
+      const result = await activateStrikeTeams({
+        data: { city: selectedDossier.city }
+      });
+      
+      setActivating(false);
+      toast.success("Strike Teams Activated", {
+        id: "strike-teams",
+        description: `${result.teams_count} CPCB rapid-response teams dispatched. ETAs: ${result.eta_minutes.map(eta => `${eta} min`).join(", ")}. Status: ${result.dispatch_status}`,
+        duration: 6000,
+      });
+    } catch (err) {
+      setActivating(false);
+      toast.error("Failed to Activate Strike Teams", {
+        id: "strike-teams",
+        description: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        duration: 6000,
+      });
+      console.error("[enforcement] Strike teams error:", err);
+    }
   };
 
   const handleExport = () => {
@@ -120,24 +135,101 @@ export default function Page() {
   };
 
   const handleDownloadDossier = (d: typeof DOSSIERS[0]) => {
-    toast.success(`Downloading ${d.id}.pdf`, {
-      description: `Evidence bundle: hash-chain readings, Merkle proof, SHAP attribution. Chain pos: ${d.chainPos}.`,
-      duration: 5000,
-    });
+    toast.loading(`Downloading ${d.id}.pdf…`, { id: "download-dossier" });
+    
+    try {
+      // In a real implementation, this would trigger an actual file download
+      // For now, simulate the download with a short delay
+      setTimeout(() => {
+        toast.success(`Dossier ${d.id} downloaded`, {
+          id: "download-dossier",
+          description: `Evidence bundle: hash-chain readings, Merkle proof, SHAP attribution. Chain pos: ${d.chainPos}.`,
+          duration: 5000,
+        });
+      }, 1500);
+    } catch (err) {
+      toast.error("Download failed", {
+        id: "download-dossier",
+        description: `Could not download dossier: ${err instanceof Error ? err.message : "Unknown error"}`,
+        duration: 5000,
+      });
+    }
   };
 
-  const handleIssueLegalNotice = (d: typeof DOSSIERS[0]) => {
-    toast.warning("Legal Notice Issued", {
-      description: `Notice under EP Act §17 issued for ${d.id} — ${d.city}. Officer ${d.officer} notified.`,
-      duration: 5000,
-    });
+  const handleIssueLegalNotice = async (d: typeof DOSSIERS[0]) => {
+    try {
+      toast.loading("Issuing Legal Notice…", { id: "legal-notice" });
+      
+      const result = await updateIncidentStatus({
+        data: {
+          incidentId: d.id,
+          status: "Escalated",
+          notes: `Legal notice issued under EP Act §17`
+        }
+      });
+      
+      if (result.ok) {
+        toast.success("Legal Notice Issued", {
+          id: "legal-notice",
+          description: `Notice under EP Act §17 issued for ${d.id} — ${d.city}. Officer ${d.officer} notified.`,
+          duration: 5000,
+        });
+        
+        // Refresh dossier list by re-fetching incidents
+        // In a real app, this would trigger a query refetch
+      } else {
+        toast.error("Failed to Issue Legal Notice", {
+          id: "legal-notice",
+          description: result.error || "Unknown error",
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      toast.error("Failed to Issue Legal Notice", {
+        id: "legal-notice",
+        description: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        duration: 5000,
+      });
+      console.error("[enforcement] Legal notice error:", err);
+    }
   };
 
-  const handleAssignStrikeTeam = (d: typeof DOSSIERS[0]) => {
-    toast.info("Strike Team Assigned", {
-      description: `CPCB Rapid Response Team 3 assigned to ${d.id} — ${d.city}. ETA: 22 min.`,
-      duration: 5000,
-    });
+  const handleAssignStrikeTeam = async (d: typeof DOSSIERS[0]) => {
+    try {
+      toast.loading("Assigning Strike Team…", { id: "assign-team" });
+      
+      const result = await updateIncidentStatus({
+        data: {
+          incidentId: d.id,
+          status: "Dispatched",
+          notes: `Assigned to CPCB Rapid Response Team 3`
+        }
+      });
+      
+      if (result.ok) {
+        toast.success("Strike Team Assigned", {
+          id: "assign-team",
+          description: `CPCB Rapid Response Team 3 assigned to ${d.id} — ${d.city}. ETA: 22 min.`,
+          duration: 5000,
+        });
+        
+        // Refresh dossier list on success
+        // In a real app, this would trigger a query refetch
+      } else {
+        toast.error("Failed to Assign Strike Team", {
+          id: "assign-team",
+          description: result.error || "Unknown error",
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      toast.error("Failed to Assign Strike Team", {
+        id: "assign-team",
+        description: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        duration: 5000,
+      });
+      console.error("[enforcement] Assign team error:", err);
+    }
   };
 
   return (

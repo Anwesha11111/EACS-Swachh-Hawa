@@ -6,6 +6,7 @@ import { downloadCsv } from "@/lib/export";
 import { CITIES } from "@/lib/mock-data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { generateReport, getReportStatus, downloadReport } from "@/lib/api";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Environmental Reports · Swachh Hawa" }] }),
@@ -26,26 +27,89 @@ const CATEGORIES = ["All", "Quarterly", "NCAP", "Atlas", "Enforcement", "Health"
 export default function Page() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [generating, setGenerating] = useState(false);
+  const [polling, setPolling] = useState<string | null>(null);
 
   const filtered = activeCategory === "All" ? REPORTS : REPORTS.filter(r => r.type === activeCategory);
 
   const handleGenerateReport = async () => {
     setGenerating(true);
     toast.loading("Generating custom report…", { id: "gen-report" });
-    await new Promise(r => setTimeout(r, 2200));
-    setGenerating(false);
-    toast.success("Custom report generated — RPT-2026-CUSTOM-001.pdf ready for download", { id: "gen-report", duration: 4000 });
+    
+    try {
+      const result = await generateReport({
+        data: {
+          report_type: "aqi_summary",
+          date_range: {
+            start_date: new Date(Date.now() - 30*24*60*60*1000).toISOString(),
+            end_date: new Date().toISOString(),
+          },
+          cities: ["Delhi", "Mumbai"],
+          format: "pdf",
+        },
+      });
+
+      toast.success("Report generation started", {
+        id: "gen-report",
+        description: `Job ${result.job_id} created. Estimated time: ${result.estimated_time_seconds}s`,
+      });
+
+      // Start polling for completion
+      setPolling(result.job_id);
+      let attempts = 0;
+      const maxAttempts = result.estimated_time_seconds / 2;
+
+      const pollStatus = async () => {
+        try {
+          const status = await getReportStatus({ data: { job_id: result.job_id } });
+
+          if (status.status === "completed") {
+            setPolling(null);
+            toast.success("Report ready for download", {
+              description: `${status.job_id}.pdf is ready`,
+            });
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(pollStatus, 2000);
+          }
+        } catch (err) {
+          console.error("Poll error:", err);
+        }
+      };
+
+      setTimeout(pollStatus, 2000);
+    } catch (err) {
+      toast.error("Failed to generate report", {
+        id: "gen-report",
+        description: String(err),
+      });
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleDownloadReport = (r: typeof REPORTS[0]) => {
-    if (r.format.includes("CSV")) {
-      downloadCsv(
-        CITIES.map(c => ({ City: c.name, State: c.state, AQI: c.aqi, "PM2.5": c.pm25, "PM10": c.pm10, "Report": r.id })),
-        `${r.id}.csv`
-      );
-      toast.success(`Downloaded ${r.id}.csv`);
-    } else {
-      toast.success(`Downloading ${r.id}.pdf…`, { description: `${r.pages} pages · ${r.cities} cities covered` });
+  const handleDownloadReport = async (r: typeof REPORTS[0]) => {
+    try {
+      if (r.format.includes("CSV")) {
+        downloadCsv(
+          CITIES.map(c => ({ City: c.name, State: c.state, AQI: c.aqi, "PM2.5": c.pm25, "PM10": c.pm10, "Report": r.id })),
+          `${r.id}.csv`
+        );
+        toast.success(`Downloaded ${r.id}.csv`);
+      } else if (r.format.includes("PDF")) {
+        // Verify completion before downloading
+        const result = await downloadReport({ data: { job_id: r.id } });
+        toast.success(`Downloading ${result.format} report…`, {
+          description: `Ready for download: ${r.id}.${result.format.toLowerCase()}`,
+        });
+      } else {
+        toast.success(`Downloading ${r.id}…`, {
+          description: `${r.pages} pages · ${r.cities} cities covered`,
+        });
+      }
+    } catch (err) {
+      toast.error("Download failed", {
+        description: String(err),
+      });
     }
   };
 
@@ -129,7 +193,10 @@ export default function Page() {
         {[
           {
             title: "Open Data API", desc: "All datasets accessible via REST API with DP-sanitised outputs. Rate-limited by role.", icon: <Globe className="h-5 w-5" />, c: "cyan",
-            action: () => { toast.info("API Docs", { description: "Opening API documentation at /api — browse endpoints and rate limits." }); }
+            action: () => { 
+              window.location.href = "/api";
+              toast.info("API Docs", { description: "Opening API documentation at /api" }); 
+            }
           },
           {
             title: "Bulk CSV Export", desc: "Download time-series by city, pollutant, and date range. Includes chain proof manifest.", icon: <Download className="h-5 w-5" />, c: "primary",
@@ -143,7 +210,9 @@ export default function Page() {
           },
           {
             title: "Data Atlas (Shapefile)", desc: "GIS-ready shapefiles for the 250-city pollution grid with attribute tables.", icon: <BarChart2 className="h-5 w-5" />, c: "emerald",
-            action: () => { toast.success("Shapefile package queued", { description: "ATLAS-2025-SHP.zip will download when ready (~140 MB)" }); }
+            action: () => { 
+              toast.success("Shapefile package queued", { description: "ATLAS-2025-SHP.zip will download when ready (~140 MB)" });
+            }
           },
         ].map(t => (
           <div key={t.title} className="rounded-xl border border-border bg-card/70 p-4 flex items-start gap-3">

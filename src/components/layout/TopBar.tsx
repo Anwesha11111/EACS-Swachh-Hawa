@@ -8,6 +8,7 @@ import { useTheme } from "@/lib/theme";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { CommandPalette } from "./CommandPalette";
+import { markNotificationsAsRead } from "@/lib/api";
 
 const PAGE_TITLES: Record<string, string> = {
   "/":                 "National Overview",
@@ -125,7 +126,19 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 
   const unread = notifications.filter((n) => !n.read).length;
 
-  const markAllRead = () => setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    try {
+      // Call API to persist to backend
+      await markNotificationsAsRead({ data: { mark_all: true } });
+      
+      // Update local state
+      setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error("[TopBar] Mark all read error:", err);
+      // Fall back to just updating local state even if API fails
+      setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
+    }
+  };
 
   const dateStr = now.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const timeStr = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase();

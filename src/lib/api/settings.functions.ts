@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { crypto } from "node:crypto";
 import { getSupabaseAdmin } from "../supabase.server";
 
 // User settings — load and persist per-user preferences.
@@ -116,4 +117,190 @@ export const saveSettings = createServerFn({ method: "POST" })
     // Demo mode — no Supabase; settings only live in the browser for this session
     console.log(`[settings/demo] saved for ${data.userEmail}`);
     return { ok: true, mode: "demo" as const };
+  });
+
+// ── Webhook Management ─────────────────────────────────────────────────────
+
+export interface Webhook {
+  webhook_id: string;
+  status: "active" | "inactive";
+  created_at: string;
+  url: string;
+  events: string[];
+}
+
+export interface WebhookResponse {
+  webhook_id: string;
+  status: "active" | "inactive";
+  created_at: string;
+}
+
+/**
+ * Create a new webhook for event notifications
+ * Input: {url, events: string[]}
+ * Output: {webhook_id, status: 'active', created_at}
+ */
+export const createWebhook = createServerFn({ method: "POST" })
+  .inputValidator(z.object({
+    userEmail: z.string().email(),
+    webhook_url: z.string().url("Invalid webhook URL"),
+    trigger_events: z.array(z.string()).min(1, "At least one event is required"),
+  }))
+  .handler(async ({ data: input }) => {
+    const db = await getSupabaseAdmin();
+
+    const webhook_id = `WH-${crypto.randomUUID()}`;
+    const created_at = new Date().toISOString();
+
+    if (!db) {
+      console.log("[settings/demo] Would create webhook:", input);
+      return {
+        webhook_id,
+        status: "active" as const,
+        created_at,
+        source: "demo" as const,
+      };
+    }
+
+    try {
+      // Insert webhook record
+      const { error: insertError } = await db
+        .from("webhooks")
+        .insert({
+          id: webhook_id,
+          user_email: input.userEmail,
+          url: input.webhook_url,
+          events: input.trigger_events,
+          status: "active",
+          created_at,
+        });
+
+      if (insertError) throw insertError;
+
+      // Log to audit_log
+      try {
+        await db.from("audit_log").insert({
+          action: "webhook_created",
+          entity_type: "webhook",
+          entity_id: webhook_id,
+          details: {
+            user_email: input.userEmail,
+            events: input.trigger_events,
+          },
+          created_at,
+        });
+      } catch (auditErr) {
+        console.warn("[settings] Audit log error:", auditErr);
+      }
+
+      return {
+        webhook_id,
+        status: "active" as const,
+        created_at,
+        source: "database" as const,
+      };
+    } catch (err) {
+      console.error("[settings] Webhook create error:", err);
+      throw new Error(`Failed to create webhook: ${String(err)}`);
+    }
+  });
+
+/**
+ * Delete a webhook
+ * Input: {webhook_id}
+ * Output: {success: boolean}
+ */
+export const deleteWebhook = createServerFn({ method: "POST" })
+  .inputValidator(z.object({
+    userEmail: z.string().email(),
+    webhook_id: z.string().min(1),
+  }))
+  .handler(async ({ data: input }) => {
+    const db = await getSupabaseAdmin();
+
+    if (!db) {
+      console.log("[settings/demo] Would delete webhook:", input.webhook_id);
+      return { success: true, source: "demo" as const };
+    }
+
+    try {
+      // Verify ownership before deleting
+      const { data: webhook, error: fetchError } = await db
+        .from("webhooks")
+        .select("id, user_email")
+        .eq("id", input.webhook_id)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (!webhook) {
+        throw new Error("Webhook not found");
+      }
+      if (webhook.user_email !== input.userEmail) {
+        throw new Error("Unauthorized: webhook does not belong to this user");
+      }
+
+      // Delete webhook
+      const { error: deleteError } = await db
+        .from("webhooks")
+        .delete()
+        .eq("id", input.webhook_id);
+
+      if (deleteError) throw deleteError;
+
+      // Log to audit_log
+      try {
+        await db.from("audit_log").insert({
+          action: "webhook_deleted",
+          entity_type: "webhook",
+          entity_id: input.webhook_id,
+          details: {
+            user_email: input.userEmail,
+          },
+          created_at: new Date().toISOString(),
+        });
+      } catch (auditErr) {
+        console.warn("[settings] Audit log error:", auditErr);
+      }
+
+      return { success: true, source: "database" as const };
+    } catch (err) {
+      console.error("[settings] Webhook delete error:", err);
+      throw new Error(`Failed to delete webhook: ${String(err)}`);
+    }
+  });
+
+/**
+ * Get all webhooks for a user
+ */
+export const getUserWebhooks = createServerFn({ method: "POST" })
+  .inputValidator(z.object({
+    userEmail: z.string().email(),
+  }))
+  .handler(async ({ data: input }) => {
+    const db = await getSupabaseAdmin();
+
+    if (!db) {
+      return {
+        webhooks: [],
+        source: "mock" as const,
+      };
+    }
+
+    try {
+      const { data, error } = await db
+        .from("webhooks")
+        .select("*")
+        .eq("user_email", input.userEmail)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      return {
+        webhooks: (data || []) as Webhook[],
+        source: "database" as const,
+      };
+    } catch (err) {
+      console.error("[settings] Webhooks fetch error:", err);
+      throw new Error("Failed to fetch webhooks");
+    }
   });

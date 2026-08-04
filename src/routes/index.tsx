@@ -51,6 +51,42 @@ const STAT_ROW = [
 
 function Index() {
   const [activePollutant, setActivePollutant] = useState<string>("aqi");
+  const [selectedCountry, setSelectedCountry] = useState<string>("India");
+  const [selectedState, setSelectedState] = useState<string>("All States");
+  const [selectedCity, setSelectedCity] = useState<string>("All Cities");
+  const [selectedMetric, setSelectedMetric] = useState<string>("AQI");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("24H S");
+  const [selectedHeatmapMetric, setSelectedHeatmapMetric] = useState<string>("PM2.5");
+  const [selectedTrendPeriod, setSelectedTrendPeriod] = useState<string>("7 Days");
+  const [selectedForecastCity, setSelectedForecastCity] = useState<string>("Delhi");
+  
+  // Dropdown open states
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  // Get unique states from CITIES
+  const states = ["All States", ...new Set(CITIES.map(c => c.state))].sort();
+  
+  // Get cities for selected state
+  const citiesForState = selectedState === "All States" 
+    ? CITIES 
+    : CITIES.filter(c => c.state === selectedState);
+  
+  const cityNames = ["All Cities", ...citiesForState.map(c => c.name)].sort();
+
+  // Handle state change - reset city to "All Cities"
+  const handleStateChange = (state: string) => {
+    setSelectedState(state);
+    setSelectedCity("All Cities");
+    setOpenDropdown(null);
+  };
+  
+  // Toggle dropdown
+  const toggleDropdown = (dropdown: string) => {
+    setOpenDropdown(openDropdown === dropdown ? null : dropdown);
+  };
+  
+  // Close dropdown on click outside
+  const closeDropdown = () => setOpenDropdown(null);
 
   return (
     <div className="flex flex-col gap-4">
@@ -74,11 +110,70 @@ function Index() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <FilterPill label="India" />
-              <FilterPill label="All States" />
-              <FilterPill label="All Cities" />
-              <FilterPill label="AQI" />
-              <FilterPill label="24H S" />
+              {/* Country Dropdown */}
+              <div className="relative">
+                <FilterPill label={selectedCountry} onClick={() => setOpenDropdown(openDropdown === "country" ? null : "country")} />
+                {openDropdown === "country" && (
+                  <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[120px]">
+                    <button onClick={() => { setSelectedCountry("India"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">India</button>
+                    <button onClick={() => { setSelectedCountry("World"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">World</button>
+                  </div>
+                )}
+              </div>
+
+              {/* State Dropdown */}
+              <div className="relative">
+                <FilterPill label={selectedState} onClick={() => setOpenDropdown(openDropdown === "state" ? null : "state")} />
+                {openDropdown === "state" && (
+                  <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[150px] max-h-64 overflow-y-auto">
+                    {states.map(state => (
+                      <button key={state} onClick={() => handleStateChange(state)} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent whitespace-nowrap">
+                        {state}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* City Dropdown */}
+              <div className="relative">
+                <FilterPill label={selectedCity} onClick={() => setOpenDropdown(openDropdown === "city" ? null : "city")} />
+                {openDropdown === "city" && (
+                  <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[160px] max-h-64 overflow-y-auto">
+                    {cityNames.map(city => (
+                      <button key={city} onClick={() => { setSelectedCity(city); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent whitespace-nowrap">
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Metric Dropdown */}
+              <div className="relative">
+                <FilterPill label={selectedMetric} onClick={() => setOpenDropdown(openDropdown === "metric" ? null : "metric")} />
+                {openDropdown === "metric" && (
+                  <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[120px]">
+                    {POLLUTANT_KEYS.map(p => (
+                      <button key={p.key} onClick={() => { setSelectedMetric(p.label); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Period Dropdown */}
+              <div className="relative">
+                <FilterPill label={selectedPeriod} onClick={() => setOpenDropdown(openDropdown === "period" ? null : "period")} />
+                {openDropdown === "period" && (
+                  <div className="absolute left-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[120px]">
+                    <button onClick={() => { setSelectedPeriod("24H S"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">24H S</button>
+                    <button onClick={() => { setSelectedPeriod("7D"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">7 Days</button>
+                    <button onClick={() => { setSelectedPeriod("30D"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">30 Days</button>
+                  </div>
+                )}
+              </div>
               <button className="flex items-center gap-1.5 rounded-md bg-[var(--emerald)] px-3 py-1.5 text-[11px] font-semibold text-white mono">
                 <StatusDot tone="emerald" />
                 Live
@@ -137,9 +232,19 @@ function Index() {
           <Panel
             title="Air Quality Forecast"
             actions={
-              <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition">
-                Delhi <ChevronDown className="h-3 w-3" />
-              </button>
+              <div className="relative">
+                <button onClick={() => setOpenDropdown(openDropdown === "forecast" ? null : "forecast")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition">
+                  {selectedForecastCity} <ChevronDown className="h-3 w-3" />
+                </button>
+                {openDropdown === "forecast" && (
+                  <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[140px]">
+                    <button onClick={() => { setSelectedForecastCity("Delhi"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">Delhi</button>
+                    <button onClick={() => { setSelectedForecastCity("Mumbai"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">Mumbai</button>
+                    <button onClick={() => { setSelectedForecastCity("Bangalore"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">Bangalore</button>
+                    <button onClick={() => { setSelectedForecastCity("Chennai"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">Chennai</button>
+                  </div>
+                )}
+              </div>
             }
           >
             <div className="flex justify-between gap-1 mb-3">
@@ -269,9 +374,19 @@ function Index() {
         <Panel
           title="AQI Heatmap (India)"
           actions={
-            <button className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition">
-              PM2.5 <ChevronDown className="h-3 w-3" />
-            </button>
+            <div className="relative">
+              <button onClick={() => setOpenDropdown(openDropdown === "heatmap" ? null : "heatmap")} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition">
+                {selectedHeatmapMetric} <ChevronDown className="h-3 w-3" />
+              </button>
+              {openDropdown === "heatmap" && (
+                <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[120px]">
+                  <button onClick={() => { setSelectedHeatmapMetric("PM2.5"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">PM2.5</button>
+                  <button onClick={() => { setSelectedHeatmapMetric("AQI"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">AQI</button>
+                  <button onClick={() => { setSelectedHeatmapMetric("PM10"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">PM10</button>
+                  <button onClick={() => { setSelectedHeatmapMetric("NO₂"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">NO₂</button>
+                </div>
+              )}
+            </div>
           }
           dense
         >
@@ -282,9 +397,18 @@ function Index() {
         <Panel
           title="AQI Trend (India Average)"
           actions={
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">7 Days</span>
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            <div className="relative flex items-center gap-1">
+              <button onClick={() => setOpenDropdown(openDropdown === "trend" ? null : "trend")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition">
+                {selectedTrendPeriod}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {openDropdown === "trend" && (
+                <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-md shadow-lg z-50 min-w-[120px]">
+                  <button onClick={() => { setSelectedTrendPeriod("24H"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">24H</button>
+                  <button onClick={() => { setSelectedTrendPeriod("7 Days"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">7 Days</button>
+                  <button onClick={() => { setSelectedTrendPeriod("30 Days"); setOpenDropdown(null); }} className="block w-full text-left px-3 py-2 text-xs hover:bg-accent">30 Days</button>
+                </div>
+              )}
             </div>
           }
         >
@@ -404,9 +528,9 @@ function MiniSparkline() {
   );
 }
 
-function FilterPill({ label }: { label: string }) {
+function FilterPill({ label, onClick }: { label: string; onClick?: () => void }) {
   return (
-    <button className="flex items-center gap-1 rounded-md border border-border bg-card/60 px-2.5 py-1 text-[11px] text-foreground hover:bg-accent transition">
+    <button onClick={onClick} className="flex items-center gap-1 rounded-md border border-border bg-card/60 px-2.5 py-1 text-[11px] text-foreground hover:bg-accent transition">
       {label} <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
     </button>
   );

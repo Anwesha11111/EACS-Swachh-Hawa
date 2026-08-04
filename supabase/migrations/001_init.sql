@@ -29,12 +29,31 @@ create index if not exists complaints_created_at_idx  on public.complaints (crea
 
 -- RLS: public can insert (anonymous complaints); only service-role can read
 alter table public.complaints enable row level security;
-create policy "Anyone can submit a complaint"
-  on public.complaints for insert
-  with check (true);
-create policy "Service-role reads all"
-  on public.complaints for select
-  using (auth.role() = 'service_role');
+
+-- Only create policies if they don't exist (idempotent)
+do $$ begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'complaints' 
+    and policyname = 'Anyone can submit a complaint'
+  ) then
+    create policy "Anyone can submit a complaint"
+      on public.complaints for insert
+      with check (true);
+  end if;
+end $$;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'complaints' 
+    and policyname = 'Service-role reads all'
+  ) then
+    create policy "Service-role reads all"
+      on public.complaints for select
+      using (auth.role() = 'service_role');
+  end if;
+end $$;
 
 -- ── 2. User Settings ──────────────────────────────────────────────────────────
 create table if not exists public.user_settings (
@@ -52,9 +71,18 @@ create table if not exists public.user_settings (
 
 -- RLS: each user manages their own row (via service-role on server)
 alter table public.user_settings enable row level security;
-create policy "Service-role manages settings"
-  on public.user_settings for all
-  using (auth.role() = 'service_role');
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'user_settings' 
+    and policyname = 'Service-role manages settings'
+  ) then
+    create policy "Service-role manages settings"
+      on public.user_settings for all
+      using (auth.role() = 'service_role');
+  end if;
+end $$;
 
 -- ── 3. AirGPT Chat History ────────────────────────────────────────────────────
 create table if not exists public.chat_history (
@@ -70,9 +98,18 @@ create index if not exists chat_history_created_at_idx  on public.chat_history (
 
 -- RLS: service-role only (all reads/writes go through server functions)
 alter table public.chat_history enable row level security;
-create policy "Service-role manages chat"
-  on public.chat_history for all
-  using (auth.role() = 'service_role');
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'chat_history' 
+    and policyname = 'Service-role manages chat'
+  ) then
+    create policy "Service-role manages chat"
+      on public.chat_history for all
+      using (auth.role() = 'service_role');
+  end if;
+end $$;
 
 -- ── 4. Notification Read State ────────────────────────────────────────────────
 create table if not exists public.notification_reads (
@@ -85,9 +122,18 @@ create table if not exists public.notification_reads (
 create index if not exists notif_reads_user_idx on public.notification_reads (user_email);
 
 alter table public.notification_reads enable row level security;
-create policy "Service-role manages notification reads"
-  on public.notification_reads for all
-  using (auth.role() = 'service_role');
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies 
+    where tablename = 'notification_reads' 
+    and policyname = 'Service-role manages notification reads'
+  ) then
+    create policy "Service-role manages notification reads"
+      on public.notification_reads for all
+      using (auth.role() = 'service_role');
+  end if;
+end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Done. Verify with:

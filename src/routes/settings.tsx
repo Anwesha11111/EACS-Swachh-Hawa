@@ -3,9 +3,10 @@ import { Panel } from "@/components/ui-kit/Panel";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Bell, Globe, Webhook, Save, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getSettings, saveSettings } from "@/lib/api/settings.functions";
+import { getSettings, saveSettings, getUserWebhooks } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { WebhookModal } from "@/components/modals/WebhookModal";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings · Swachh Hawa" }] }),
@@ -25,6 +26,9 @@ export default function Page() {
   const [no2, setNo2] = useState(100);
   const [so2, setSo2] = useState(80);
   const [saving, setSaving] = useState(false);
+  const [showWebhookModal, setShowWebhookModal] = useState(false);
+  const [webhooks, setWebhooks] = useState([]);
+  const [webhooksLoading, setWebhooksLoading] = useState(false);
 
   useEffect(() => {
     getSettings({ data: { userEmail } }).then(res => {
@@ -39,7 +43,21 @@ export default function Page() {
         setSo2(res.settings.so2Threshold);
       }
     }).catch(() => {});
+
+    loadWebhooks();
   }, [userEmail]);
+
+  const loadWebhooks = async () => {
+    setWebhooksLoading(true);
+    try {
+      const result = await getUserWebhooks({ data: { userEmail } });
+      setWebhooks(result.webhooks || []);
+    } catch (err) {
+      console.error("Failed to load webhooks:", err);
+    } finally {
+      setWebhooksLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -169,29 +187,43 @@ export default function Page() {
 
         <Panel title="Webhook Integrations" subtitle="Push events to external systems (CPCB portal, Slack, IFTTT)" actions={<Webhook className="h-4 w-4 text-muted-foreground" />}>
           <div className="space-y-2">
-            {[
-              { name: "CPCB ENVIS Portal", url: "https://envis.cpcb.gov.in/webhook", events: "breach, resolve", status: "Active" },
-              { name: "Internal Slack #air-alerts", url: "https://hooks.slack.com/…", events: "Critical breach", status: "Active" },
-              { name: "IFTTT Emergency", url: "https://maker.ifttt.com/…", events: "AQI > 400", status: "Disabled" },
-            ].map(w => (
-              <div key={w.name} className="rounded-lg border border-border bg-background/50 p-3 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{w.name}</span>
-                  <span className="rounded px-1.5 py-0.5 mono text-[10px] font-bold" style={{
-                    background: w.status === "Active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 12%,transparent)",
-                    color: w.status === "Active" ? "var(--emerald)" : "var(--muted-foreground)",
-                  }}>{w.status}</span>
+            {webhooksLoading ? (
+              <div className="text-xs text-muted-foreground p-4 text-center">Loading webhooks...</div>
+            ) : webhooks.length > 0 ? (
+              webhooks.map(w => (
+                <div key={w.webhook_id} className="rounded-lg border border-border bg-background/50 p-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{w.url}</span>
+                    <span className="rounded px-1.5 py-0.5 mono text-[10px] font-bold" style={{
+                      background: w.status === "active" ? "color-mix(in oklab,var(--emerald) 16%,transparent)" : "color-mix(in oklab,var(--muted-foreground) 12%,transparent)",
+                      color: w.status === "active" ? "var(--emerald)" : "var(--muted-foreground)",
+                    }}>{w.status}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">Events: {w.events.join(", ")}</div>
                 </div>
-                <div className="mono text-[10px] text-muted-foreground mt-0.5">{w.url}</div>
-                <div className="text-[10px] text-muted-foreground">Events: {w.events}</div>
-              </div>
-            ))}
-            <button className="w-full rounded-lg border border-dashed border-border py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+              ))
+            ) : (
+              <div className="text-xs text-muted-foreground p-4 text-center">No webhooks configured</div>
+            )}
+            <button 
+              onClick={() => setShowWebhookModal(true)}
+              className="w-full rounded-lg border border-dashed border-border py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors">
               + Add webhook
             </button>
           </div>
         </Panel>
       </div>
+
+      <WebhookModal
+        open={showWebhookModal}
+        onOpenChange={setShowWebhookModal}
+        userEmail={userEmail}
+        existingWebhooks={webhooks}
+        onSuccess={() => {
+          loadWebhooks();
+          setShowWebhookModal(false);
+        }}
+      />
     </div>
   );
 }

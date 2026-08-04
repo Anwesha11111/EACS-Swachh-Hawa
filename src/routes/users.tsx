@@ -6,6 +6,8 @@ import { Users, UserPlus, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { downloadCsv } from "@/lib/export";
+import { InviteUserModal } from "@/components/modals/InviteUserModal";
+import { inviteUser } from "@/lib/api";
 
 export const Route = createFileRoute("/users")({
   head: () => ({ meta: [{ title: "User Roles · Swachh Hawa" }] }),
@@ -33,6 +35,7 @@ const ROLE_DIST = [
 
 export default function Page() {
   const [search, setSearch] = useState("");
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const filtered = useMemo(() =>
     search
@@ -46,10 +49,7 @@ export default function Page() {
   );
 
   const handleInviteUser = () => {
-    toast.info("Invite User", {
-      description: "Send an invitation email to a new user. They will receive a role assignment link valid for 48 hours.",
-      duration: 5000,
-    });
+    setShowInviteModal(true);
   };
 
   const handleExportUsers = () => {
@@ -80,6 +80,14 @@ export default function Page() {
             </button>
           </div>
         }
+      />
+
+      <InviteUserModal
+        open={showInviteModal}
+        onOpenChange={setShowInviteModal}
+        onSuccess={() => {
+          setShowInviteModal(false);
+        }}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
