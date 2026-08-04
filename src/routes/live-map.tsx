@@ -199,7 +199,11 @@ function LiveMap() {
       <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
         <Panel dense className="relative">
           <div className="relative" style={{ height: expanded ? "80vh" : "720px" }}>
-            <IndiaMap onSelect={setSel} />
+            <IndiaMap 
+              onSelect={setSel} 
+              activeLayers={activeLayers} 
+              colorMode={metric === "AQI" ? "aqi" : metric === "PM2.5" ? "pm25" : metric === "PM10" ? "pm10" : "trend"} 
+            />
 
             {/* Floating overlay layer controls */}
             <div className="absolute left-3 top-3 flex flex-col gap-2 z-10">

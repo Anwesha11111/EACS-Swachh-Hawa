@@ -6,6 +6,7 @@ import {
   LineChart, Line, CartesianGrid,
 } from "recharts";
 import { Code2, Key, Zap, Shield } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/api")({
   head: () => ({ meta: [{ title: "Research APIs · Swachh Hawa" }] }),
@@ -43,6 +44,30 @@ const METHOD_COLOR: Record<string, string> = {
   DELETE: "var(--rose)",
 };
 
+function handleOpenAPISpec() {
+  toast.loading("Opening OpenAPI specification…", { id: "openapi" });
+  setTimeout(() => {
+    // In production, this would open the actual OpenAPI spec
+    window.open("https://api.swachhhawa.gov.in/openapi.json", "_blank");
+    toast.success("OpenAPI Spec", {
+      id: "openapi",
+      description: "OpenAPI 3.1 specification opened in new tab",
+    });
+  }, 500);
+}
+
+function handleRequestAPIKey() {
+  toast.loading("Redirecting to API key request…", { id: "apikey" });
+  setTimeout(() => {
+    // In production, this would open the API key request form
+    window.open("https://api.swachhhawa.gov.in/request-key", "_blank");
+    toast.success("Request Submitted", {
+      id: "apikey",
+      description: "Redirected to API key request form. You'll receive an email within 2 hours.",
+    });
+  }, 500);
+}
+
 function Page() {
   return (
     <div className="space-y-5">
@@ -52,10 +77,10 @@ function Page() {
         description="Signed, rate-limited REST APIs exposing AQI readings, forecasts, cryptographic proofs, and enforcement summaries. Differential privacy applied at the publish boundary per DisclosurePolicy."
         actions={
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50">
+            <button onClick={handleOpenAPISpec} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent/50 transition">
               <Code2 className="h-3.5 w-3.5" /> OpenAPI Spec
             </button>
-            <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">
+            <button onClick={handleRequestAPIKey} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition">
               <Key className="h-3.5 w-3.5" /> Request API Key
             </button>
           </div>

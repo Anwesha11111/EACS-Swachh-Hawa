@@ -139,15 +139,17 @@ export function IndiaMap({
   onSelect,
   compact = false,
   activeLayers = {},
+  colorMode: initialColorMode = "aqi",
 }: {
   onSelect?: (c: CityAqi) => void;
   compact?: boolean;
   activeLayers?: Record<string, boolean>;
+  colorMode?: "aqi" | "pm25" | "pm10" | "trend";
 }) {
   const [zoom,      setZoom]      = useState(1);
   const [pan,       setPan]       = useState({ x: 0, y: 0 });
   const [hover,     setHover]     = useState<CityAqi | null>(null);
-  const [colorMode, setColorMode] = useState<ColorMode>("aqi");
+  const [colorMode, setColorMode] = useState<ColorMode>(initialColorMode);
   const [liveOn,    setLiveOn]    = useState(true);
   const [panelOpen, setPanelOpen] = useState(true);
   const [cities,    setCities]    = useState<CityAqi[]>(CITIES);
@@ -160,6 +162,11 @@ export function IndiaMap({
     const id = setInterval(() => setCities(liveUpdate), 3000);
     return () => clearInterval(id);
   }, [liveOn]);
+
+  // ── Sync colorMode from prop ──────────────────────────────────────────────
+  useEffect(() => {
+    setColorMode(initialColorMode);
+  }, [initialColorMode]);
 
   // ── Pan / zoom ────────────────────────────────────────────────────────────
   const onPtrDown = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
@@ -221,6 +228,80 @@ export function IndiaMap({
             opacity={0.85}
           />
 
+          {/* ── Wind layer — directional arrows ───────────────────────────── */}
+          {activeLayers?.Wind && (
+            <>
+              {cities.slice(0, 12).map((c, i) => {
+                const pt = CITY_POINTS.get(c.name);
+                if (!pt) return null;
+                const [cx, cy] = pt;
+                const angle = (i * 30) % 360;
+                const rad = (angle * Math.PI) / 180;
+                return (
+                  <g key={`wind-${c.name}`} opacity={0.6}>
+                    <line x1={cx} y1={cy} x2={cx + 15 * Math.cos(rad)} y2={cy + 15 * Math.sin(rad)} 
+                          stroke="var(--cyan)" strokeWidth={1.5 / zoom} strokeDasharray={`3 ${3/zoom}`} />
+                    <polygon points={`${cx + 15 * Math.cos(rad)},${cy + 15 * Math.sin(rad)} ${cx + 12 * Math.cos(rad - 0.4)},${cy + 12 * Math.sin(rad - 0.4)} ${cx + 12 * Math.cos(rad + 0.4)},${cy + 12 * Math.sin(rad + 0.4)}`}
+                             fill="var(--cyan)" />
+                  </g>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── Satellite layer — grid pattern ─────────────────────────────── */}
+          {activeLayers?.Satellite && (
+            <>
+              {Array.from({ length: 5 }).map((_, i) =>
+                Array.from({ length: 5 }).map((_, j) => (
+                  <circle key={`sat-${i}-${j}`} cx={150 + i * 130} cy={100 + j * 160} r={3 / zoom}
+                          fill="none" stroke="var(--amber)" strokeWidth={1 / zoom} opacity={0.4} />
+                ))
+              )}
+            </>
+          )}
+
+          {/* ── Drones layer — moving dots ──────────────────────────────────── */}
+          {activeLayers?.Drones && (
+            <>
+              {cities.slice(0, 8).map((c, i) => {
+                const pt = CITY_POINTS.get(c.name);
+                if (!pt) return null;
+                const [cx, cy] = pt;
+                const offset = (i * 45) % 360;
+                return (
+                  <g key={`drone-${c.name}`} opacity={0.7}>
+                    <circle cx={cx + 20 * Math.cos((offset * Math.PI) / 180)} 
+                            cy={cy + 20 * Math.sin((offset * Math.PI) / 180)} 
+                            r={2.5 / zoom} fill="var(--rose)" />
+                    <circle cx={cx + 20 * Math.cos((offset * Math.PI) / 180)} 
+                            cy={cy + 20 * Math.sin((offset * Math.PI) / 180)} 
+                            r={5 / zoom} fill="none" stroke="var(--rose)" strokeWidth={1 / zoom} opacity={0.3} />
+                  </g>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── MVU layer — mobile monitoring vehicles ─────────────────────── */}
+          {activeLayers?.MVU && (
+            <>
+              {cities.slice(0, 6).map((c, i) => {
+                const pt = CITY_POINTS.get(c.name);
+                if (!pt) return null;
+                const [cx, cy] = pt;
+                return (
+                  <g key={`mvu-${c.name}`} opacity={0.7}>
+                    <rect x={cx - 5} y={cy - 3} width={10} height={6} 
+                          fill="var(--emerald)" rx={1} />
+                    <circle cx={cx - 4} cy={cy - 1} r={1.5 / zoom} fill="var(--background)" />
+                    <circle cx={cx + 4} cy={cy - 1} r={1.5 / zoom} fill="var(--background)" />
+                  </g>
+                );
+              })}
+            </>
+          )}
+
           {/* ── City dots — fixed size, no animation, no glow ────────────── */}
           {cities.map((c) => {
             const pt = CITY_POINTS.get(c.name);
@@ -239,7 +320,6 @@ export function IndiaMap({
                 {/* Fixed-size dot — r never changes so there is no visual pop */}
                 <circle cx={cx} cy={cy} r={5} fill={color} />
                 <circle cx={cx} cy={cy} r={2.5} fill="var(--background)" opacity={0.5} />
-                {/* Label — always visible, scales with zoom */}
                 {!compact && (
                   <>
                     {/* White/dark halo for legibility on any background */}

@@ -29,6 +29,7 @@ import { Route as IntelligenceRouteImport } from './routes/intelligence'
 import { Route as IncidentsRouteImport } from './routes/incidents'
 import { Route as HeatmapsRouteImport } from './routes/heatmaps'
 import { Route as ForecastingRouteImport } from './routes/forecasting'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ExplainableRouteImport } from './routes/explainable'
 import { Route as EnforcementRouteImport } from './routes/enforcement'
 import { Route as EdgeNodesRouteImport } from './routes/edge-nodes'
@@ -153,6 +154,11 @@ const HeatmapsRoute = HeatmapsRouteImport.update({
 const ForecastingRoute = ForecastingRouteImport.update({
   id: '/forecasting',
   path: '/forecasting',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExplainableRoute = ExplainableRouteImport.update({
@@ -307,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
+  '/explore': typeof ExploreRoute
   '/forecasting': typeof ForecastingRoute
   '/heatmaps': typeof HeatmapsRoute
   '/incidents': typeof IncidentsRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
+  '/explore': typeof ExploreRoute
   '/forecasting': typeof ForecastingRoute
   '/heatmaps': typeof HeatmapsRoute
   '/incidents': typeof IncidentsRoute
@@ -402,6 +410,7 @@ export interface FileRoutesById {
   '/edge-nodes': typeof EdgeNodesRoute
   '/enforcement': typeof EnforcementRoute
   '/explainable': typeof ExplainableRoute
+  '/explore': typeof ExploreRoute
   '/forecasting': typeof ForecastingRoute
   '/heatmaps': typeof HeatmapsRoute
   '/incidents': typeof IncidentsRoute
@@ -451,6 +460,7 @@ export interface FileRouteTypes {
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
+    | '/explore'
     | '/forecasting'
     | '/heatmaps'
     | '/incidents'
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
+    | '/explore'
     | '/forecasting'
     | '/heatmaps'
     | '/incidents'
@@ -545,6 +556,7 @@ export interface FileRouteTypes {
     | '/edge-nodes'
     | '/enforcement'
     | '/explainable'
+    | '/explore'
     | '/forecasting'
     | '/heatmaps'
     | '/incidents'
@@ -593,6 +605,7 @@ export interface RootRouteChildren {
   EdgeNodesRoute: typeof EdgeNodesRoute
   EnforcementRoute: typeof EnforcementRoute
   ExplainableRoute: typeof ExplainableRoute
+  ExploreRoute: typeof ExploreRoute
   ForecastingRoute: typeof ForecastingRoute
   HeatmapsRoute: typeof HeatmapsRoute
   IncidentsRoute: typeof IncidentsRoute
@@ -755,6 +768,13 @@ declare module '@tanstack/react-router' {
       path: '/forecasting'
       fullPath: '/forecasting'
       preLoaderRoute: typeof ForecastingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explainable': {
@@ -961,6 +981,7 @@ const rootRouteChildren: RootRouteChildren = {
   EdgeNodesRoute: EdgeNodesRoute,
   EnforcementRoute: EnforcementRoute,
   ExplainableRoute: ExplainableRoute,
+  ExploreRoute: ExploreRoute,
   ForecastingRoute: ForecastingRoute,
   HeatmapsRoute: HeatmapsRoute,
   IncidentsRoute: IncidentsRoute,

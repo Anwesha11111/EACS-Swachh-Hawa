@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   AlertTriangle, CheckCircle, Flame, Maximize2,
   ChevronDown, ArrowUp, ArrowDown,
@@ -195,7 +196,7 @@ function Index() {
                 {TOP_POLLUTED_DASH.map((c) => {
                   const cat = aqiCategory(c.aqi);
                   return (
-                    <li key={c.name} className="flex items-center justify-between">
+                    <li key={c.name} className="flex items-center justify-between cursor-pointer hover:bg-accent/50 px-2 py-1 rounded transition" onClick={() => setSelectedCity(c.name)}>
                       <div className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ background: `var(--${cat.token})` }} />
                         <span className="text-xs text-foreground">{c.name}</span>
@@ -205,7 +206,7 @@ function Index() {
                   );
                 })}
               </ul>
-              <button className="mt-2 w-full text-center text-[10px] text-primary hover:underline">View All Cities →</button>
+              <button onClick={() => window.location.href = '/live-aqi'} className="mt-2 w-full text-center text-[10px] text-primary hover:underline transition">View All Cities →</button>
             </div>
 
             {/* Live Updates — overlay bottom right of map */}
