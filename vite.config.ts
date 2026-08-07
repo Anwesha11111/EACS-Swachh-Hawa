@@ -18,5 +18,14 @@ export default defineConfig({
       ],
     },
     server: { host: "::", port: 3000 },
+    build: {
+      outDir: 'dist',
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
   },
 });
