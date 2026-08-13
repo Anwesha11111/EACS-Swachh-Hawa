@@ -5,5 +5,19 @@
     "api/render.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/dist/client/assets/$1"
+    },
+    {
+      "src": "/india-outline.svg",
+      "dest": "/dist/client/india-outline.svg"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/render.js"
+    }
+  ]
 }
