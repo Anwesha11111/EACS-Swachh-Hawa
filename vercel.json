@@ -1,7 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".",
-  "framework": "other",
   "functions": {
     "api/render.js": {
       "runtime": "nodejs20.x",
