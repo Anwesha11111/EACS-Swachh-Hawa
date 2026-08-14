@@ -27,12 +27,31 @@ export default async function handler(req, res) {
 
     let body = undefined;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      const chunks = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
+      if (req.body !== undefined) {
+        if (Buffer.isBuffer(req.body)) {
+          body = req.body;
+        } else if (typeof req.body === 'string') {
+          body = Buffer.from(req.body);
+        } else if (typeof req.body === 'object' && req.body !== null) {
+          body = Buffer.from(JSON.stringify(req.body));
+        }
+      } else {
+        const chunks = [];
+        for await (const chunk of req) {
+          chunks.push(chunk);
+        }
+        body = Buffer.concat(chunks);
       }
-      body = Buffer.concat(chunks);
     }
+
+    console.log('Request debug details:', {
+      method: req.method,
+      url: req.url,
+      hasReqBody: req.body !== undefined,
+      reqBodyType: typeof req.body,
+      bodyLength: body ? body.length : 0,
+      bodyString: body ? body.toString('utf8').substring(0, 200) : ''
+    });
 
     const requestInit = {
       method: req.method,
