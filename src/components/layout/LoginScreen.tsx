@@ -85,6 +85,8 @@ function PhoneForm() {
             <span className="text-sm text-muted-foreground font-mono">+91</span>
             <input
               type="tel"
+              id="phone-input"
+              name="phone"
               placeholder="Mobile number"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
@@ -108,6 +110,8 @@ function PhoneForm() {
           <div className="flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-2 focus-within:border-primary transition">
             <input
               type={showOtp ? "text" : "password"}
+              id="otp-input"
+              name="otp"
               placeholder="6-digit OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -217,6 +221,8 @@ export function LoginScreen() {
                   <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <input
                     type="email"
+                    id="email-input"
+                    name="email"
                     placeholder="Email address"
                     value={email}
                     autoComplete="username"
@@ -229,6 +235,8 @@ export function LoginScreen() {
                   <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <input
                     type={showPw ? "text" : "password"}
+                    id="password-input"
+                    name="password"
                     placeholder="Password"
                     value={password}
                     autoComplete="current-password"
