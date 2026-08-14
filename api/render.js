@@ -39,8 +39,9 @@ export default async function handler(req, res) {
       headers,
     };
 
-    if (body !== undefined) {
+    if (body !== undefined && body.length > 0) {
       requestInit.body = body;
+      requestInit.duplex = 'half';
     }
 
     const webRequest = new Request(url, requestInit);
@@ -65,7 +66,12 @@ export default async function handler(req, res) {
     const responseBody = await response.text();
     res.end(responseBody);
   } catch (error) {
-    console.error('Render error:', error);
+    console.error('Render error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      url,
+      method: req.method,
+    });
     res.status(500).send(`<pre>Render error: ${error?.message ?? error}</pre>`);
   }
 }

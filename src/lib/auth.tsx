@@ -79,7 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       }
       return { ok: false, error: res.error };
-    } catch {
+    } catch (err) {
+      console.error("loginWithPassword error:", err);
       return { ok: false, error: "Something went wrong. Please try again." };
     }
   }, []);
@@ -87,7 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const requestOtp = useCallback(async (phone: string): Promise<OtpRequestResult> => {
     try {
       return await requestOtpFn({ data: { phone } });
-    } catch {
+    } catch (err) {
+      console.error("requestOtp error:", err);
       return { ok: false, error: "Could not send code. Please try again." };
     }
   }, []);
@@ -100,7 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       }
       return { ok: false, error: res.error };
-    } catch {
+    } catch (err) {
+      console.error("verifyOtp error:", err);
       return { ok: false, error: "Something went wrong. Please try again." };
     }
   }, []);
